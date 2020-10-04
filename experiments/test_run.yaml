@@ -1,0 +1,75 @@
+config_version: 'v7'
+
+model_comment: 'test_run'
+
+temporal_config:
+  feature_start_time: '2009-01-01'
+  feature_end_time: '2015-01-01'
+  label_start_time: '2009-01-01'
+  label_end_time: '2015-01-01'
+  max_training_histories: ['2 years']
+  test_durations: ['2 years']
+  label_timespans: ['1 year']
+
+label_config:
+  query: |
+    select entity_id, event_id, event_date, label as outcome
+    from semantic.labels
+  name: 'penalized'
+
+cohort_config:
+  query: |
+    select distinct entity_id
+    from semantic.events
+    where event_date <= '{as_of_date}'::date
+  name: 'facility'
+
+feature_aggregations:
+  -
+    prefix: 'events'
+    from_obj: 'semantic.events'
+    knowledge_date_column: 'event_date'
+
+    aggregates_imputation:
+      count:
+        type: 'zero_noflag'
+
+    aggregates:
+      -
+        quantity:
+          total: 'found_violation'
+        metrics:
+          - 'count'
+      -
+        quantity:
+          total: 'penalty_amount'
+        metrics:
+          - 'count'
+          - 'sum'
+
+    intervals: ['all']
+
+    groups:
+      - 'entity_id'
+
+grid_config:
+  'sklearn.tree.DecisionTreeClassifier':
+    max_depth: [1,5]
+    max_features: [~, 'sqrt']
+    min_samples_split: [1]
+    criterion: ['gini']
+
+scoring:
+  sort_seed: 0
+  testing_metric_groups:
+    -
+      metrics: ['precision@', 'recall@']
+      thresholds:
+        percentiles: [1.0]
+  training_metric_groups:
+    -
+      metrics: [accuracy]
+    -
+      metrics: ['precision@', 'recall@']
+      thresholds:
+        percentiles: [1.0]
