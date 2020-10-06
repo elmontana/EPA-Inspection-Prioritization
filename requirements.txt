@@ -5,3 +5,4 @@ click==7.1.2
 attrdict==2.0.1
 psycopg2==2.8.6
 triage==4.1.1
+parsedatetime==2.6

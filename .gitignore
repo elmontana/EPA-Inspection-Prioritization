@@ -1,3 +1,5 @@
 database.yaml
 venv/
 logs/
+.git
+**/__pycache__/
