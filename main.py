@@ -110,13 +110,13 @@ def main(config, skip_preprocessing):
         train_label_table_name = f'{table_prefix}_train_labels'
         select_labels(conn, config['label_config'],
                            train_label_table_name,
-                           date_to_string(train_dates['feature_start_time']),
-                           date_to_string(train_dates['feature_end_time']))
+                           date_to_string(train_dates['label_start_time']),
+                           date_to_string(train_dates['label_end_time']))
         test_label_table_name = f'{table_prefix}_test_labels'
         select_labels(conn, config['label_config'], 
                            test_label_table_name,
-                           date_to_string(test_dates['feature_start_time']),
-                           date_to_string(test_dates['feature_end_time']))
+                           date_to_string(test_dates['label_start_time']),
+                           date_to_string(test_dates['label_end_time']))
 
         # training
         print('Training not integrated yet.')
