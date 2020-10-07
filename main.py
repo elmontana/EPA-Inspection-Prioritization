@@ -9,6 +9,7 @@ from utils.date_utils import date_to_string, get_current_time_string
 from utils.sql_utils import get_connection, run_sql_from_string
 from preprocessing.run import main as run_preprocess
 from model_prep.aggregate_features import main as aggregate_features
+from model_prep.select_labels import main as select_labels
 
 
 def parse_temporal_config(temporal_config):
@@ -106,7 +107,16 @@ def main(config, skip_preprocessing):
                            date_to_string(test_dates['feature_end_time']))
 
         # aggregate labels
-        print('Label aggregation not integrated yet.')
+        train_label_table_name = f'{table_prefix}_train_labels'
+        select_labels(conn, config['label_config'],
+                           train_label_table_name,
+                           date_to_string(train_dates['label_start_time']),
+                           date_to_string(train_dates['label_end_time']))
+        test_label_table_name = f'{table_prefix}_test_labels'
+        select_labels(conn, config['label_config'], 
+                           test_label_table_name,
+                           date_to_string(test_dates['label_start_time']),
+                           date_to_string(test_dates['label_end_time']))
 
         # training
         print('Training not integrated yet.')
