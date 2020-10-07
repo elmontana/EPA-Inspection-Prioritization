@@ -10,19 +10,32 @@ from textwrap import dedent
 
 def get_data(feature_table, label_table):
     """
-    Queries the given tables and returns a pandas DataFrame.
+    Get data from feature and label tables.
 
     Arguments:
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
+
+    Returns:
+        - X: feature array
+        - y: label array
     """
+    
+    # Query data from sql tables
     conn = sql.get_connection()
     sql_query = f'select f.*, l.label from {feature_table} f inner join {label_table} l on f.entity_id = l.entity_id;'
-    return pd.read_sql(sql_query, con=conn)
+    df = pd.read_sql(sql_query, con=conn)
+
+    # Process data
+    data = df.to_numpy(copy=True)
+    X, y = data[:, :-1], data[:, -1].astype(int)
+    return X, y
 
 
-def test_models(feature_table, label_table, model_paths=[], log_dir='./log_dir'):
+def test(feature_table, label_table, model_paths=[], log_dir='./log_dir'):
     """
+    Test models on validation data.
+
     Arguments:
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
@@ -38,8 +51,7 @@ def test_models(feature_table, label_table, model_paths=[], log_dir='./log_dir')
 
     # Process features and labels
     df = get_data(feature_table, label_table)
-    data = df.to_numpy(copy=True)
-    X, y = data[:, :-1], data[:, -1].astype(int)
+    
 
     # Evaluate models
     for model_path in model_paths:
@@ -48,19 +60,19 @@ def test_models(feature_table, label_table, model_paths=[], log_dir='./log_dir')
         with open(model_path, 'rb') as file:
             model = pickle.load(file)
 
-        # Evaluate models predictions
+        # Evaluate predictions
         y_pred = model.predict(X) > 0.5
         precision = precision_score(y, y_pred)
         recall = recall_score(y, y_pred)
         f1 = f1_score(y, y_pred)
 
         # Log results
-        log_text = f'''
+        log_text = f"""
             Model Path: {model_path} 
             Precision: {precision}
             Recall: {recall}
             F1-Score: {f1}
-        '''
+        """
 
         model_name = os.path.splitext(os.path.basename(model_path))[0]
         log_path = os.path.join(log_dir, f'{model_name}_eval.txt')
@@ -72,12 +84,13 @@ def test_models(feature_table, label_table, model_paths=[], log_dir='./log_dir')
 if __name__ == '__main__':
     feature_table = 'semantic.reporting'
     label_table = 'semantic.labels'
+    model_dir = './saved_models'
 
     # Train models
     import model_train
-    model_train.main(feature_table, label_table, model_train.load_grid_config(), './saved_models')
+    model_train.main(feature_table, label_table, model_train.load_grid_config(), model_dir)
 
     # Evaluate models
-    model_paths = [os.path.join('./saved_models', file) for file in os.listdir('./saved_models') if file.endswith('.pkl')]
-    test_models(feature_table, label_table, model_paths)
+    model_paths = [os.path.join(model_dir, file) for file in os.listdir(model_dir) if file.endswith('.pkl')]
+    test(feature_table, label_table, model_paths)
 
