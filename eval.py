@@ -20,7 +20,7 @@ def get_data(feature_table, label_table):
         - X: feature array
         - y: label array
     """
-    
+
     # Query data from sql tables
     conn = sql.get_connection()
     sql_query = f'select f.*, l.label from {feature_table} f inner join {label_table} l on f.entity_id = l.entity_id;'
@@ -49,10 +49,9 @@ def test(feature_table, label_table, model_paths=[], log_dir='./log_dir'):
     except FileExistsError:
         pass
 
-    # Process features and labels
-    df = get_data(feature_table, label_table)
+    # Get feature and label arrays
+    X, y = get_data(feature_table, label_table)
     
-
     # Evaluate models
     for model_path in model_paths:
 
