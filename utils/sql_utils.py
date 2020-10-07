@@ -3,13 +3,29 @@ import pandas as pd
 import sqlalchemy
 
 
-def get_connection():
+
+def get_credentials(path='~/.pgpass', db='epa3_database'):
+    """
+    Load database credentials from .pgpass file
+    """
+
+    # Load credentials from path
+    with open(os.path.expanduser(path), 'r') as file:
+        host, port, _, user, password = file.read().strip().split(':')
+
+    # Set environment variables
+    os.environ['POSTGRES_HOST'] = host
+    os.environ['POSTGRES_PORT'] = port
+    os.environ['POSTGRES_USER'] = user
+    os.environ['POSTGRES_PASSWORD'] = password
+    os.environ['POSTGRES_DB'] = db
+    
+    return host, port, user, password, db
+
+
+def get_connection(pgpass='~/.pgpass'):
     # get db config
-    host = os.environ['POSTGRES_HOST']
-    user = os.environ['POSTGRES_USER']
-    db = os.environ['POSTGRES_DB']
-    password = os.environ['POSTGRES_PASSWORD']
-    port = os.environ['POSTGRES_PORT']
+    host, port, user, password, db = get_credentials()
 
     # create db connection
     db_url = f'postgresql://{user}:{password}@{host}:{port}/{db}'
@@ -34,7 +50,7 @@ def run_sql_from_string(conn, s):
 
 
 def get_table_columns(conn, table_name):
-    database_name = os.environ['POSTGRES_DB']
+    database_name = get_credentials()[-1]
     table_schema = table_name.split('.')[0]
     table_name = '.'.join(table_name.split('.')[1:])
     table_columns = pd.read_sql("select column_name from information_schema.columns "
