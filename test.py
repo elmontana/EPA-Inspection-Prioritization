@@ -1,35 +1,12 @@
 import os
 import pandas as pd
 import pickle
-import utils.sql_utils as sql
 
+from pathlib import Path
 from sklearn.metrics import precision_score, recall_score, f1_score
 from textwrap import dedent
+from utils.data_utils import get_data
 
-
-
-def get_data(feature_table, label_table):
-    """
-    Get data from feature and label tables.
-
-    Arguments:
-        - feature_table: name of table containing test features
-        - label_table: name of table containing label features
-
-    Returns:
-        - X: feature array
-        - y: label array
-    """
-
-    # Query data from sql tables
-    conn = sql.get_connection()
-    sql_query = f'select f.*, l.label from {feature_table} f inner join {label_table} l on f.entity_id = l.entity_id;'
-    df = pd.read_sql(sql_query, con=conn)
-
-    # Process data
-    data = df.to_numpy(copy=True)
-    X, y = data[:, :-1], data[:, -1].astype(int)
-    return X, y
 
 
 def test(feature_table, label_table, model_paths=[], log_dir='./log_dir'):
@@ -40,14 +17,12 @@ def test(feature_table, label_table, model_paths=[], log_dir='./log_dir'):
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
         - model_paths: list of paths to the models being tested
-        - log_dir: directory path for logging evaluation results
+        - log_dir: directory for logging evaluation results
     """
 
     # Create log directory if not exists
-    try:
+    if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    except FileExistsError:
-        pass
 
     # Get feature and label arrays
     X, y = get_data(feature_table, label_table)
@@ -73,8 +48,8 @@ def test(feature_table, label_table, model_paths=[], log_dir='./log_dir'):
             F1-Score: {f1}
         """
 
-        model_name = os.path.splitext(os.path.basename(model_path))[0]
-        log_path = os.path.join(log_dir, f'{model_name}_eval.txt')
+        model_name = Path(model_path).stem
+        log_path = Path(log_dir) / f'{model_name}_eval.txt'
         with open(log_path, 'w') as log_file:
             log_file.writelines(dedent(log_text))
 
@@ -86,10 +61,10 @@ if __name__ == '__main__':
     model_dir = './saved_models'
 
     # Train models
-    import model_train
-    model_train.main(feature_table, label_table, model_train.load_grid_config(), model_dir)
+    import train
+    train.train(feature_table, label_table, save_dir=model_dir)
 
     # Evaluate models
-    model_paths = [os.path.join(model_dir, file) for file in os.listdir(model_dir) if file.endswith('.pkl')]
+    model_paths = [Path(model_dir) / file for file in os.listdir(model_dir) if file.endswith('.pkl')]
     test(feature_table, label_table, model_paths)
 
