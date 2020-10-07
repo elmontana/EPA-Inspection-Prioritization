@@ -9,7 +9,7 @@ from utils.data_utils import get_data
 
 
 
-def test(feature_table, label_table, model_paths=[], log_dir='./log_dir'):
+def test(feature_table, label_table, model_paths, log_dir='./log_dir'):
     """
     Test models on validation data.
 
@@ -29,7 +29,6 @@ def test(feature_table, label_table, model_paths=[], log_dir='./log_dir'):
     
     # Evaluate models
     for model_path in model_paths:
-
         # Load saved model
         with open(model_path, 'rb') as file:
             model = pickle.load(file)

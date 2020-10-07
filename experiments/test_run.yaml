@@ -69,8 +69,14 @@ grid_config:
   'sklearn.tree.DecisionTreeClassifier':
     max_depth: [1,5]
     max_features: [~, 'sqrt']
-    min_samples_split: [1]
+    min_samples_split: [2]
     criterion: ['gini']
+  'sklearn.ensemble.RandomForestClassifier': {}
+  'sklearn.linear_model.LinearRegression':
+    fit_intercept: [False]
+  'sklearn.linear_model.LogisticRegression': 
+    max_iter: [1000]
+
 
 scoring:
   sort_seed: 0

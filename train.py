@@ -1,36 +1,56 @@
+import importlib
+import itertools
 import os
 import pickle
-import sklearn.linear_model as sk
 import yaml
 
 from pathlib import Path
+from sklearn import *
 from utils.data_utils import get_data
 
 
 
-def get_models(config_path='./grid_config.yaml'):
+def create_model(model_class_name, model_kwargs):
     """
-    Create models as specificed by a config file.
+    Dynamically instantiate a model given its name and arguments.
 
     Arguments:
-        - config_path: path to configuration file
+        - model_class_name: the name of the model class (e.g. sklearn.tree.DecisionTreeClassifier)
+        - model_kwargs: the keyword arguments to pass to the model's constructor
 
     Returns:
-        - models: a list of models
+        - model: an instantiated model
     """
-    with open('grid_config.yaml', 'r') as file:
-        config = yaml.safe_load(file)
-
-    models = []
-    for model_name, model_kwargs in config['grid_config'].items():
-        model = getattr(sk, model_name)(**model_kwargs)
-        models.append(model)
-
-    return models
+    module_name, class_name = model_class_name.rsplit('.', 1)
+    model_class = getattr(importlib.import_module(module_name), class_name)
+    return model_class(**model_kwargs)
 
 
+def get_model_configurations(config):
+    """
+    Get the set of all model configurations specified by the config. 
 
-def train(feature_table, label_table, config_path='./grid_config.yaml', save_dir='./saved_models'):
+    Arguments:
+        - config: a config dictionary (loaded from yaml)
+
+    Returns:
+        - model_configurations: a list of configurations in the form (model_name, kwargs)
+    """
+    model_configurations = []
+    for model_name, model_kwargs_set in config['grid_config'].items():
+        values_set = itertools.product(*model_kwargs_set.values())
+        kwargs_set = [{k: v for k, v in zip(model_kwargs_set.keys(), values)} for values in values_set]
+
+        for kwargs in kwargs_set:
+            model_configurations.append((model_name, kwargs))
+
+    return model_configurations
+
+
+
+def train(
+    feature_table, label_table, 
+    config_path='./experiments/test_run.yaml', save_dir='./saved_models'):
     """
     Train models as specified by a config file.
 
@@ -45,18 +65,36 @@ def train(feature_table, label_table, config_path='./grid_config.yaml', save_dir
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    # Load data and models
+    # Load config
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+        exp_name = config['experiment_name']
+    
+    # Load data
     X, y = get_data(feature_table, label_table)
-    models = get_models(config_path)
 
     # Train models
-    for model in models:
+    model_configurations = get_model_configurations(config)
+    model_descriptions = []
+
+    for model_num, (class_name, kwargs) in enumerate(model_configurations):
+        # Create & fit model
+        model = create_model(class_name, kwargs)
         model.fit(X, y)
 
         # Save model
-        model_path = Path(save_dir) / f'{model.__class__.__name__}.pkl'
+        model_path = Path(save_dir) / f'{exp_name}_{class_name}_{model_num}.pkl'
         with open(model_path, 'wb') as file:
             pickle.dump(model, file)
+
+        # Create model description
+        description = f'Model #{model_num}\nClass: {class_name}\nKeyword Args: {kwargs}'
+        model_descriptions.append(description)
+
+    # Log model configurations
+    log_path = Path(save_dir) / f'{exp_name}_info.txt'
+    with open(log_path, 'w') as log_file:
+        log_file.writelines('\n\n'.join(model_descriptions))
 
 
 
