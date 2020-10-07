@@ -31,8 +31,11 @@ cohort_config:
 
 label_config:
   query: |
-    select entity_id, event_id, event_date, label as outcome
+    select entity_id, max(label) as label
     from semantic.labels
+    where event_date >= '{start_date}' and event_date <= '{end_date}'
+    group by entity_id
+    order by entity_id 
   name: 'penalized'
 
 features:
