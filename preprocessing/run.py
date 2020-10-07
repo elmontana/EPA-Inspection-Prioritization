@@ -9,8 +9,6 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 get_path = lambda s: os.path.join(dir_path, s)
 
 
-
-
 def run_data_loading(conn):
     pass
 
