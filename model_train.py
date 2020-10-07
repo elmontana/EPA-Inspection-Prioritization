@@ -10,6 +10,8 @@ import pickle
 import os
 from pathlib import Path
 
+import utils.sql_utils as sql
+
 
 
 def load_grid_config():
@@ -24,13 +26,14 @@ def load_grid_config():
 	return model_list
 
 
-def get_df(feature_table, label_table, conn):
-	sql = f'select f.*, l.label from {feature_table} f inner join {label_table} l on f.entity_id = l.entity_id;'
-	dataframe = pd.read_sql(sql, con = conn)
+def get_df(feature_table, label_table):
+	conn = sql.get_connection()
+	sql_query = f'select f.*, l.label from {feature_table} f inner join {label_table} l on f.entity_id = l.entity_id;'
+	dataframe = pd.read_sql(sql_query, con=conn)
 	return dataframe
 
-def train_model(feature_table, label_table, grid_config, model, conn):
-	df = get_df(feature_table, label_table, conn)
+def train_model(feature_table, label_table, grid_config, model):
+	df = get_df(feature_table, label_table)
 	arr = df.to_numpy(copy=True)
 	# import pdb
 	# pdb.set_trace()
@@ -54,13 +57,13 @@ def save_model(model, log_dir, model_name):
 	file_handler = open(my_path, 'wb')
 	pickle.dump(model, file_handler)
 
-def main(feature_table, label_table, grid_config, log_dir, conn):
+def main(feature_table, label_table, grid_config, log_dir):
 	#trained_model_list = []
 
 	for model_name, model_params in grid_config:
 		model = getattr(sk, model_name)(**model_params)
 		print(model)
-		trained_model = train_model(feature_table, label_table, grid_config, model, conn)
+		trained_model = train_model(feature_table, label_table, grid_config, model)
 		#trained_model_list.append(trained_model)
 
 		save_model(trained_model, log_dir, model_name)
@@ -68,7 +71,9 @@ def main(feature_table, label_table, grid_config, log_dir, conn):
 	return
 
 
-conn = create_engine("postgresql://dhruvm:@mlpolicylab.db.dssg.io/epa3_database", connect_args={'options': '-csearch_path={}'.format("semantic")})
-main("semantic.reporting", "semantic.labels_agg", load_grid_config(), "log_dir", conn)
+
+if __name__ == '__main__':
+	#conn = create_engine("postgresql://dhruvm:@mlpolicylab.db.dssg.io/epa3_database", connect_args={'options': '-csearch_path={}'.format("semantic")})
+	main("semantic.reporting", "semantic.labels", load_grid_config(), "log_dir")
 
 

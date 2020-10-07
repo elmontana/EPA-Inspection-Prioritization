@@ -7,54 +7,77 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 from textwrap import dedent
 
 
-def query_table(table):
+
+def get_data(feature_table, label_table):
     """
-    Queries the given table and returns a pandas DataFrame.
+    Queries the given tables and returns a pandas DataFrame.
 
     Arguments:
-        - table: the table name (e.g. 'semantic.labels')
+        - feature_table: name of table containing test features
+        - label_table: name of table containing label features
     """
     conn = sql.get_connection()
-    query_result = conn.execute(f'select * from {feature_table}')
-    df = pd.DataFrame(query_result.fetchall())
-    df.columns = query_result.keys()
-    return df
+    sql_query = f'select f.*, l.label from {feature_table} f inner join {label_table} l on f.entity_id = l.entity_id;'
+    return pd.read_sql(sql_query, con=conn)
 
 
-def test_models(feature_table, label_table, config=None, log_dir='./'):
+def test_models(feature_table, label_table, model_paths=[], log_dir='./log_dir'):
     """
     Arguments:
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
-        - config: path to a configuration file
-        - log_dir: path to directory for logging
+        - model_paths: list of paths to the models being tested
+        - log_dir: directory path for logging evaluation results
     """
 
+    # Create log directory if not exists
+    try:
+        os.makedirs(log_dir)
+    except FileExistsError:
+        pass
+
     # Process features and labels
-    features, labels = query_table(feature_table), query_table(label_table)
-    X, y_actual = features, labels # TODO: actually process features & labels into numpy arrays
+    df = get_data(feature_table, label_table)
+    data = df.to_numpy(copy=True)
+    X, y = data[:, :-1], data[:, -1].astype(int)
 
-    # Load saved model
-    model_path = 'experiments/model.pkl' # TODO: get the actual path
-    with open(model_path, 'rb') as file:
-        model = pickle.load(file)
+    # Evaluate models
+    for model_path in model_paths:
 
-    # Evaluate predictions
-    y_pred = model.predict(features)
-    precision = precision_score(y_actual, y_pred)
-    recall = recall_score(y_actual, y_pred)
-    f1 = f1_score(y_actual, y_pred)
+        # Load saved model
+        with open(model_path, 'rb') as file:
+            model = pickle.load(file)
 
-    # Log results
-    log_text = f'''
-        Model Path: {model_path} 
-        Config Path: {config}
-        Precision: {precision}
-        Recall: {recall}
-        F1-Score: {f1}
-    '''
+        # Evaluate models predictions
+        y_pred = model.predict(X) > 0.5
+        precision = precision_score(y, y_pred)
+        recall = recall_score(y, y_pred)
+        f1 = f1_score(y, y_pred)
 
-    log_path = os.path.join(log_dir, '420.txt') # TODO: get the actual log path
-    with open(log_path, 'w') as log_file:
-        log_file.writelines(dedent(log_text))
+        # Log results
+        log_text = f'''
+            Model Path: {model_path} 
+            Precision: {precision}
+            Recall: {recall}
+            F1-Score: {f1}
+        '''
+
+        model_name = os.path.splitext(os.path.basename(model_path))[0]
+        log_path = os.path.join(log_dir, f'{model_name}_eval.txt')
+        with open(log_path, 'w') as log_file:
+            log_file.writelines(dedent(log_text))
+
+
+
+if __name__ == '__main__':
+    feature_table = 'semantic.reporting'
+    label_table = 'semantic.labels'
+
+    # Train models
+    import model_train
+    model_train.main(feature_table, label_table, model_train.load_grid_config(), './saved_models')
+
+    # Evaluate models
+    model_paths = [os.path.join('./saved_models', file) for file in os.listdir('./saved_models') if file.endswith('.pkl')]
+    test_models(feature_table, label_table, model_paths)
 
