@@ -3,7 +3,7 @@ import pandas as pd
 import pickle
 
 from pathlib import Path
-from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from textwrap import dedent
 from utils.data_utils import get_data
 
@@ -35,13 +35,15 @@ def test(feature_table, label_table, model_paths, log_dir='./log_dir'):
 
         # Evaluate predictions
         y_pred = model.predict(X) > 0.5
+        accuracy = accuracy_score(y, y_pred)
         precision = precision_score(y, y_pred)
         recall = recall_score(y, y_pred)
         f1 = f1_score(y, y_pred)
 
         # Log results
         log_text = f"""
-            Model Path: {model_path} 
+            Model Path: {model_path}
+            Accuracy: {accuracy}
             Precision: {precision}
             Recall: {recall}
             F1-Score: {f1}

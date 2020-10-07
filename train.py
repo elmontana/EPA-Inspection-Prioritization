@@ -46,7 +46,6 @@ def get_model_configurations(config):
     return model_configurations
 
 
-
 def train(
     feature_table, label_table, 
     config_path='./experiments/test_run.yaml', save_dir='./saved_models'):
@@ -67,7 +66,6 @@ def train(
     # Load config
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
-        exp_name = config['experiment_name']
     
     # Load data
     X, y = get_data(feature_table, label_table)
@@ -82,18 +80,22 @@ def train(
         model.fit(X, y)
 
         # Save model
-        model_path = Path(save_dir) / f'{exp_name}_{class_name}_{model_num}.pkl'
+        experiment_name = config['experiment_name']
+        model_path = Path(save_dir) / f'{experiment_name}_{class_name}_{model_num}.pkl'
         with open(model_path, 'wb') as file:
             pickle.dump(model, file)
 
         # Create model description
-        description = f'Model #{model_num}\nClass: {class_name}\nKeyword Args: {kwargs}'
+        description = f'Model #{model_num}\nPath: {model_path}\nClass: {class_name}\nKeyword Args: {kwargs}'
         model_descriptions.append(description)
+        print(description, '\n')
 
-    # Log model configurations
-    log_path = Path(save_dir) / f'{exp_name}_info.txt'
+    # Log the model descriptions
+    experiment_name = config['experiment_name']
+    log_path = Path(save_dir) / f'{experiment_name}_info.txt'
+    log_text = '\n\n'.join(model_descriptions)
     with open(log_path, 'w') as log_file:
-        log_file.writelines('\n\n'.join(model_descriptions))
+        log_file.writelines(log_text)
 
 
 
