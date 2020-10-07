@@ -113,7 +113,7 @@ def main(config, skip_preprocessing):
                            date_to_string(train_dates['feature_start_time']),
                            date_to_string(train_dates['feature_end_time']))
         test_label_table_name = f'{table_prefix}_test_labels'
-        aggregate_features(conn, config['label_config'], 
+        select_labels(conn, config['label_config'], 
                            test_label_table_name,
                            date_to_string(test_dates['feature_start_time']),
                            date_to_string(test_dates['feature_end_time']))
