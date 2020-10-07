@@ -1,6 +1,0 @@
-grid_config:
-  'LinearRegression':
-    fit_intercept: False
-
-  'LogisticRegression':
-    max_iter: 1000

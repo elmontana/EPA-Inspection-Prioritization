@@ -5,7 +5,6 @@ import pickle
 import yaml
 
 from pathlib import Path
-from sklearn import *
 from utils.data_utils import get_data
 
 
