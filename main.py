@@ -33,7 +33,7 @@ def parse_temporal_config(temporal_config):
             'label_end_time': train_xs + xi + yi
         })
 
-        test_xs = train_xs + xi + yi
+        test_xs = train_xs + yi
         test_splits.append({
             'feature_start_time': test_xs,
             'feature_end_time': test_xs + xi,
