@@ -14,13 +14,15 @@ pip3 install -r requirements.txt
 
 ### Running the Code
 
-Simply execute `python3 main.py`. Useful command line arguments are listed below:
+```
+python3 main.py
+```
+To get information about different command line arguments, run `python3 main.py --help`.
 
-- `config`: path to the config file.
-- `skip_preprocessing`: skip the preprocessing step.
 
 ### How It Works
 
+Every experiment is specified by a configuration file (e.g. `experiments/test_run.yaml`)
 Currently the code reads the config file (default to experiments/test_run.yaml), creates config for train/test splits, preprocesses data (which can be skipped using flag `--skip_preprocessing`), generates a cohort table, generates the features, and imputes the missing values.
 
 The program creates tables in the `cleaned`, `semantic`, and `experiments` schemas of the database. In training and evaluation steps, it also creates local model dumps and evaluation result forms in a log directory.
