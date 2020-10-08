@@ -28,10 +28,10 @@ def parse_temporal_config(temporal_config):
     for i in range(temporal_config['num_train_repeat']):
         train_xs = xs + ri * i
         train_splits.append({
-            'feature_start_time': xs,
-            'feature_end_time': xs + xi,
-            'label_start_time': xs + xi,
-            'label_end_time': xs + xi + yi
+            'feature_start_time': train_xs,
+            'feature_end_time': train_xs + xi,
+            'label_start_time': train_xs + xi,
+            'label_end_time': train_xs + xi + yi
         })
 
         test_xs = train_xs + xi + yi
@@ -45,16 +45,16 @@ def parse_temporal_config(temporal_config):
     return train_splits, test_splits
 
 
-def generate_cohort_table(conn, cohort_config, as_of_date, in_prefix,
+def gen_cohort_table(conn, cohort_config, as_of_date, in_prefix,
                           out_prefix):
-    cohort_table = f'{out_prefix}_cohort'
+    cohort_table_name = f'{out_prefix}_cohort'
     cohort_sql = cohort_config['query'].replace('{as_of_date}', as_of_date) \
                                        .replace('{prefix}', in_prefix)
-    drop_sql = f'drop table if exists {cohort_table};'
-    create_sql = f'create table {cohort_table} as ({cohort_sql});'
+    drop_sql = f'drop table if exists {cohort_table_name};'
+    create_sql = f'create table {cohort_table_name} as ({cohort_sql});'
     run_sql_from_string(conn, drop_sql)
     run_sql_from_string(conn, create_sql)
-    return cohort_table
+    return cohort_table_name
 
 
 @click.command()
@@ -71,7 +71,7 @@ def main(config, skip_preprocessing, log_dir):
 
     # get db connection
     conn = get_connection()
-    
+
     # get basic info of experiment
     exp_version = config['version']
     exp_name = config["experiment_name"]
@@ -104,7 +104,7 @@ def main(config, skip_preprocessing, log_dir):
 
         # Generate cohort table
         cohort_as_of_date = date_to_string(test_dates['label_end_time'])
-        cohort_table = generate_cohort_table(
+        cohort_table_name = generate_cohort_table(
             conn,
             config['cohort_config'],
             cohort_as_of_date,
@@ -112,35 +112,35 @@ def main(config, skip_preprocessing, log_dir):
             exp_table_prefix)
 
         # Aggregate features for train & test data into new tables
-        train_feature_table = f'{exp_table_prefix}_train_features'
+        train_feature_table_name = f'{exp_table_prefix}_train_features'
         aggregate_features(
             conn, config['feature_config'], 
-            cohort_table,
-            train_feature_table,
+            cohort_table_name,
+            train_feature_table_name,
             date_to_string(train_dates['feature_start_time']),
             date_to_string(train_dates['feature_end_time']),
             preprocessing_prefix)
-        test_feature_table = f'{exp_table_prefix}_test_features'
+        test_feature_table_name = f'{exp_table_prefix}_test_features'
         aggregate_features(
             conn, config['feature_config'], 
-            cohort_table,
-            test_feature_table,
+            cohort_table_name,
+            test_feature_table_name,
             date_to_string(test_dates['feature_start_time']),
             date_to_string(test_dates['feature_end_time']),
             preprocessing_prefix)
 
         # Aggregate labels for train & test data into new tables
-        train_label_table = f'{exp_table_prefix}_train_labels'
+        train_label_table_name = f'{exp_table_prefix}_train_labels'
         select_labels(
             conn, config['label_config'],
-            train_label_table,
+            train_label_table_name,
             date_to_string(train_dates['label_start_time']),
             date_to_string(train_dates['label_end_time']),
             preprocessing_prefix)
-        test_label_table = f'{exp_table_prefix}_test_labels'
+        test_label_table_name = f'{exp_table_prefix}_test_labels'
         select_labels(
             conn, config['label_config'], 
-            test_label_table,
+            test_label_table_name,
             date_to_string(test_dates['label_start_time']),
             date_to_string(test_dates['label_end_time']),
             preprocessing_prefix)
@@ -148,24 +148,24 @@ def main(config, skip_preprocessing, log_dir):
         # Train models as specified by config
         train(
             config, 
-            train_feature_table, 
-            train_label_table,
+            train_feature_table_name, 
+            train_label_table_name,
             save_dir=train_save_dir)
 
         # Evaluate our models on the training data
         model_paths = glob.glob(f'{train_save_dir}/*.pkl')
         train_results = evaluate(
             config, 
-            train_feature_table,
-            train_label_table,
+            train_feature_table_name,
+            train_label_table_name,
             model_paths,
             log_dir=train_save_dir)
 
         # Evaluate our models on the test data
         test_results = evaluate(
             config, 
-            test_feature_table,
-            test_label_table,
+            test_feature_table_name,
+            test_label_table_name,
             model_paths,
             log_dir=test_save_dir)
 
