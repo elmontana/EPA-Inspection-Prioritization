@@ -4,12 +4,13 @@ import pickle
 
 from pathlib import Path
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from textwrap import dedent
 from utils.data_utils import get_data
 
 
 
-def test(feature_table, label_table, model_paths, log_dir='./log_dir'):
+def test(
+    feature_table, label_table, model_paths, 
+    config_path='./experiments/test_run.yaml', log_dir='./log_dir'):
     """
     Test models on validation data.
 
@@ -17,6 +18,7 @@ def test(feature_table, label_table, model_paths, log_dir='./log_dir'):
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
         - model_paths: list of paths to the models being tested
+        - config_path: path to configuration file for this experiment
         - log_dir: directory for logging evaluation results
     """
 
@@ -24,10 +26,17 @@ def test(feature_table, label_table, model_paths, log_dir='./log_dir'):
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
+    # Load config
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+
     # Get feature and label arrays
     X, y = get_data(feature_table, label_table)
     
     # Evaluate models
+    metrics = [accuracy_score, precision_score, recall_score, f1_score]
+    results = []
+
     for model_path in model_paths:
         # Load saved model
         with open(model_path, 'rb') as file:
@@ -35,24 +44,16 @@ def test(feature_table, label_table, model_paths, log_dir='./log_dir'):
 
         # Evaluate predictions
         y_pred = model.predict(X) > 0.5
-        accuracy = accuracy_score(y, y_pred)
-        precision = precision_score(y, y_pred)
-        recall = recall_score(y, y_pred)
-        f1 = f1_score(y, y_pred)
+        model_results = [metric(y, y_pred) for metric in metrics]
+        results.append(model_results)
 
-        # Log results
-        log_text = f"""
-            Model Path: {model_path}
-            Accuracy: {accuracy}
-            Precision: {precision}
-            Recall: {recall}
-            F1-Score: {f1}
-        """
-
-        model_name = Path(model_path).stem
-        log_path = Path(log_dir) / f'{model_name}_eval.txt'
-        with open(log_path, 'w') as log_file:
-            log_file.writelines(dedent(log_text))
+    # Convert results to dataframe table
+    results = pd.DataFrame(np.array(results), index=model_paths, columns=metrics)
+    
+    # Log results to csv file
+    experiment_name = config['experiment_name']
+    results_path = Path(log_dir) / f'{experiment_name}_results.csv'
+    results.to_csv(results_path)    
 
 
 

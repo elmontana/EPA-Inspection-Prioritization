@@ -14,8 +14,8 @@ def create_model(model_class_name, model_kwargs):
     Dynamically instantiate a model given its name and arguments.
 
     Arguments:
-        - model_class_name: the name of the model class (e.g. sklearn.tree.DecisionTreeClassifier)
-        - model_kwargs: the keyword arguments to pass to the model's constructor
+        - model_class_name: the name of the model class (e.g. 'sklearn.tree.DecisionTreeClassifier')
+        - model_kwargs: a dictionary of keyword arguments to pass to the model's constructor
 
     Returns:
         - model: an instantiated model
@@ -28,9 +28,11 @@ def create_model(model_class_name, model_kwargs):
 def get_model_configurations(config):
     """
     Get the set of all model configurations specified by the config. 
+    For each model keyword argument, the config specifies a list of potential values.
+    This function enumerates all possible combinations.
 
     Arguments:
-        - config: a config dictionary (loaded from yaml)
+        - config: a config dictionary for an experiment (loaded from yaml)
 
     Returns:
         - model_configurations: a list of configurations in the form (model_name, kwargs)
@@ -55,7 +57,7 @@ def train(
     Arguments:
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
-        - config_path: path to configuration file
+        - config_path: path to configuration file for this experiment
         - save_dir: directory for saving models
     """
 
