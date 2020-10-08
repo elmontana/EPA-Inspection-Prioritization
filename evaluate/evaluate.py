@@ -9,16 +9,17 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from utils.data_utils import get_data
 
 
-def evaluate(config, feature_table, label_table, model_paths, log_dir):
+
+def evaluate(config, feature_table, label_table, model_paths, log_dir='./results/'):
     """
     Test models on validation data.
 
     Arguments:
-        - config: config dict
+        - config: configuration dictionary for this experiment
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
         - model_paths: list of paths to the models being tested
-        - log_dir: directory for logging evaluation results
+        - log_dir: directory for saving evaluation results
     """
 
     # Create log directory if not exists
@@ -46,7 +47,7 @@ def evaluate(config, feature_table, label_table, model_paths, log_dir):
     columns = [metric.__name__ for metric in metrics]
     results = pd.DataFrame(np.array(results), index=model_paths, columns=columns)
 
-    # Log results to csv file
+    # Save results to csv file
     experiment_name = config['experiment_name']
     results_path = Path(log_dir) / f'{experiment_name}_results.csv'
     results.to_csv(results_path)

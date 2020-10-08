@@ -8,6 +8,7 @@ from pathlib import Path
 from utils.data_utils import get_data
 
 
+
 def create_model(model_class_name, model_kwargs):
     """
     Dynamically instantiate a model given its name and arguments.
@@ -47,15 +48,12 @@ def get_model_configurations(config):
     return model_configurations
 
 
-def train(
-    config,
-    feature_table, label_table,
-    save_dir='./saved_models'):
+def train(config, feature_table, label_table, save_dir='./saved_models/'):
     """
     Train models as specified by a config file.
 
     Arguments:
-        - config: config dict
+        - config: configuration dictionary for this experiment
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
         - save_dir: directory for saving models
@@ -94,3 +92,4 @@ def train(
     log_text = '\n\n'.join(model_descriptions)
     with open(log_path, 'w') as log_file:
         log_file.writelines(log_text)
+
