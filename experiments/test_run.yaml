@@ -25,28 +25,46 @@ cohort_config:
   # as_of_date is a placeholder set to the last date of the split
   query: |
     select distinct entity_id
-    from semantic.events
+    from semantic.{prefix}_events
     where event_date <= '{as_of_date}'::date
     order by entity_id
+
+preprocessing_config:
+  prefix: 'v0'
+  sql:
+    -
+      name: 'setup'
+      files:
+        - 'setup_clean.sql'
+        - 'setup_semantic.sql'
+    -
+      name: 'clean'
+      files:
+        - 'clean_rcra.sql'
+    -
+      name: 'semantic'
+      files:
+        - 'semantic_events.sql'
+        - 'semantic_labels.sql'
+        - 'semantic_reporting.sql'
 
 label_config:
   query: |
     select entity_id, max(label) as label
-    from semantic.labels
+    from semantic.{prefix}_labels
     where event_date >= '{start_date}' and event_date <= '{end_date}'
     group by entity_id
     order by entity_id 
-  name: 'penalized'
 
-features:
+feature_config:
   -
     prefix: 'reporting'
-    from_table: 'semantic.reporting'
+    from_table: 'semantic.{prefix}_reporting'
     table_type: 'entity'
     imputation: 'zero_noflag'
   -
     prefix: 'events'
-    from_table: 'semantic.events'
+    from_table: 'semantic.{prefix}_events'
     table_type: 'event'
     date_column_name: 'event_date'
 
@@ -65,30 +83,13 @@ features:
           - 'count'
           - 'sum'
 
-grid_config:
+model_config:
   'sklearn.tree.DecisionTreeClassifier':
     max_depth: [1,5]
     max_features: [~, 'sqrt']
     min_samples_split: [2]
     criterion: ['gini']
-  'sklearn.ensemble.RandomForestClassifier': {}
   'sklearn.linear_model.LinearRegression':
     fit_intercept: [False]
   'sklearn.linear_model.LogisticRegression': 
     max_iter: [1000]
-
-
-scoring:
-  sort_seed: 0
-  testing_metric_groups:
-    -
-      metrics: ['precision@', 'recall@']
-      thresholds:
-        percentiles: [1.0]
-  training_metric_groups:
-    -
-      metrics: [accuracy]
-    -
-      metrics: ['precision@', 'recall@']
-      thresholds:
-        percentiles: [1.0]

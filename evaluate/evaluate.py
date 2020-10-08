@@ -8,8 +8,7 @@ from textwrap import dedent
 from utils.data_utils import get_data
 
 
-
-def test(feature_table, label_table, model_paths, log_dir='./log_dir'):
+def evaluate(feature_table, label_table, model_paths, log_dir='./log_dir'):
     """
     Test models on validation data.
 
@@ -26,7 +25,16 @@ def test(feature_table, label_table, model_paths, log_dir='./log_dir'):
 
     # Get feature and label arrays
     X, y = get_data(feature_table, label_table)
-    
+
+    # Create empty result dict
+    result = {
+        'model_name': [],
+        'accuracy': [],
+        'precision': [],
+        'recall': [],
+        'f1_score': []
+    }
+
     # Evaluate models
     for model_path in model_paths:
         # Load saved model
@@ -54,6 +62,14 @@ def test(feature_table, label_table, model_paths, log_dir='./log_dir'):
         with open(log_path, 'w') as log_file:
             log_file.writelines(dedent(log_text))
 
+        # Append to result dict
+        result['model_name'].append(model_name)
+        result['accuracy'].append(accuracy)
+        result['precision'].append(precision)
+        result['recall'].append(recall)
+        result['f1_score'].append(f1_score)
+
+    return result
 
 
 if __name__ == '__main__':
@@ -62,10 +78,9 @@ if __name__ == '__main__':
     model_dir = './saved_models'
 
     # Train models
-    import train
+    from train import train
     train.train(feature_table, label_table, save_dir=model_dir)
 
     # Evaluate models
     model_paths = [Path(model_dir) / file for file in os.listdir(model_dir) if file.endswith('.pkl')]
-    test(feature_table, label_table, model_paths)
-
+    evaluate(feature_table, label_table, model_paths)

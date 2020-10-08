@@ -21,14 +21,16 @@ def get_impute_str(column_name, imputation):
 
 
 def main(conn, config, cohort_table, to_table,
-         start_time='0000-01-01', end_time='9999-12-31'):
+         start_time='0000-01-01', end_time='9999-12-31',
+         preprocessing_prefix=None):
     join_query = f'select * from {cohort_table}'
     imputes = []
     for agg_table in config:
         output_prefix = agg_table['prefix']
         input_table = agg_table['from_table']
+        input_table = input_table.replace('{prefix}', preprocessing_prefix)
         table_type = agg_table['table_type']
-        
+
         if table_type == 'entity':
             table_columns = get_table_columns(conn, input_table)
             feature_names = [x for x in table_columns if x != 'entity_id']

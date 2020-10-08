@@ -1,5 +1,5 @@
-drop view if exists cleaned.rcra_reporting_aggregated;
-create view cleaned.rcra_reporting_aggregated as (
+drop view if exists cleaned.{prefix}_rcra_reporting_aggregated;
+create view cleaned.{prefix}_rcra_reporting_aggregated as (
     select handler_id, waste_code, sum(generation_tons) total_gen_tons from (
         select case
         when waste_code_group = 'D001' then 'd001'
@@ -32,24 +32,24 @@ create view cleaned.rcra_reporting_aggregated as (
         when substr(waste_code_group, 1, 1) = 'P' then 'other_p'
         when substr(waste_code_group, 1, 1) = 'U' then 'other_u'
         else 'others'
-        end waste_code, * from cleaned.rcra_reporting) r
+        end waste_code, * from cleaned.{prefix}_rcra_reporting) r
     group by handler_id, waste_code
     order by handler_id, waste_code
 );
 
-drop table if exists semantic.reporting;
-create table semantic.reporting as (
+drop table if exists semantic.{prefix}_reporting;
+create table semantic.{prefix}_reporting as (
     select *
     from crosstab(
         'select e.id as entity_id, k.waste_code, k.total_gen_tons from (
             select cr.*, case when a.total_gen_tons > 0 then a.total_gen_tons else 0 end as total_gen_tons from (
-                select * from (select distinct handler_id from cleaned.rcra_reporting_aggregated) i cross join (
-                    select distinct waste_code from cleaned.rcra_reporting_aggregated) c
+                select * from (select distinct handler_id from cleaned.{prefix}_rcra_reporting_aggregated) i cross join (
+                    select distinct waste_code from cleaned.{prefix}_rcra_reporting_aggregated) c
                 order by i.handler_id, c.waste_code
             ) cr
-            left join cleaned.rcra_reporting_aggregated a
+            left join cleaned.{prefix}_rcra_reporting_aggregated a
             on cr.handler_id = a.handler_id and cr.waste_code = a.waste_code) k
-        inner join cleaned.entity_id e on k.handler_id = e.id_number'
+        inner join cleaned.{prefix}_entity_id e on k.handler_id = e.id_number'
         ) as ct (
         entity_id int,
         d001 float, d002 float, d008 float, tcor_icr float, f1_5 float,

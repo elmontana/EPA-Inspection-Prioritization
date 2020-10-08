@@ -2,6 +2,8 @@ import os
 import yaml
 import click
 import getpass
+import pandas as pd
+from pathlib import Path
 from attrdict import AttrDict
 
 from utils.date_utils import parse_date, parse_interval
@@ -10,6 +12,8 @@ from utils.sql_utils import get_connection, run_sql_from_string
 from preprocessing.run import main as run_preprocess
 from model_prep.aggregate_features import main as aggregate_features
 from model_prep.select_labels import main as select_labels
+from train.train import train
+from evaluate.evaluate import evaluate
 
 
 def parse_temporal_config(temporal_config):
@@ -40,9 +44,11 @@ def parse_temporal_config(temporal_config):
     return train_splits, test_splits
 
 
-def generate_cohort_table(conn, cohort_config, as_of_date, prefix):
-    cohort_table_name = f'{prefix}_cohort'
-    cohort_sql = cohort_config['query'].replace('{as_of_date}', as_of_date)
+def generate_cohort_table(conn, cohort_config, as_of_date, in_prefix,
+                          out_prefix):
+    cohort_table_name = f'{out_prefix}_cohort'
+    cohort_sql = cohort_config['query'].replace('{as_of_date}', as_of_date) \
+                                       .replace('{prefix}', in_prefix)
     drop_sql = f'drop table if exists {cohort_table_name};'
     create_sql = f'create table {cohort_table_name} as ({cohort_sql});'
     run_sql_from_string(conn, drop_sql)
@@ -55,7 +61,9 @@ def generate_cohort_table(conn, cohort_config, as_of_date, prefix):
               help='Path to config file.')
 @click.option('--skip_preprocessing', is_flag=True,
               help='Whether to skip the preprocessing step.')
-def main(config, skip_preprocessing):
+@click.option('--log_dir', type=str, default='logs',
+              help='Directory to save trained model and testing results.')
+def main(config, skip_preprocessing, log_dir):
     # get experiment config
     with open(config) as f:
         config = AttrDict(yaml.load(f, Loader=yaml.FullLoader))
@@ -70,11 +78,12 @@ def main(config, skip_preprocessing):
     username = getpass.getuser()[0]
 
     # preprocessing
+    preprocessing_prefix = config['preprocessing_config']['prefix']
     if skip_preprocessing:
         print('Preprocessing skipped.')
     else:
         print('Preprosessing...')
-        run_preprocess(conn)
+        run_preprocess(conn, config['preprocessing_config'])
         print('Preprocessing done.')
 
     # load temporal config
@@ -85,44 +94,66 @@ def main(config, skip_preprocessing):
         split_time_abbr = date_to_string(train_dates['feature_start_time'])
         split_time_abbr = split_time_abbr.replace('-', '')[2:]
         split_name = f'train_{split_time_abbr}'
-        table_prefix = f'experiments.{username}_{exp_version}_{exp_name}_{exp_time}_{split_name}'
+        prefix = f'{username}_{exp_version}_{exp_name}_{exp_time}_{split_name}'
+        exp_table_prefix = f'experiments.{prefix}'
+        train_save_dir = os.path.join(os.getcwd(), log_dir, prefix,
+                                      'train_' + exp_time)
+        test_save_dir = os.path.join(os.getcwd(), log_dir, prefix,
+                                     'test_' + exp_time)
 
         # generate cohort table
         cohort_as_of_date = date_to_string(test_dates['label_end_time'])
         cohort_table_name = generate_cohort_table(conn,
                                                   config['cohort_config'],
                                                   cohort_as_of_date,
-                                                  table_prefix)
+                                                  preprocessing_prefix,
+                                                  exp_table_prefix)
 
         # aggregate features
-        train_feature_table_name = f'{table_prefix}_train_features'
-        aggregate_features(conn, config['features'], cohort_table_name,
+        train_feature_table_name = f'{exp_table_prefix}_train_features'
+        aggregate_features(conn, config['feature_config'], cohort_table_name,
                            train_feature_table_name,
                            date_to_string(train_dates['feature_start_time']),
-                           date_to_string(train_dates['feature_end_time']))
-        test_feature_table_name = f'{table_prefix}_test_features'
-        aggregate_features(conn, config['features'], cohort_table_name,
+                           date_to_string(train_dates['feature_end_time']),
+                           preprocessing_prefix)
+        test_feature_table_name = f'{exp_table_prefix}_test_features'
+        aggregate_features(conn, config['feature_config'], cohort_table_name,
                            test_feature_table_name,
                            date_to_string(test_dates['feature_start_time']),
-                           date_to_string(test_dates['feature_end_time']))
+                           date_to_string(test_dates['feature_end_time']),
+                           preprocessing_prefix)
 
         # aggregate labels
-        train_label_table_name = f'{table_prefix}_train_labels'
+        train_label_table_name = f'{exp_table_prefix}_train_labels'
         select_labels(conn, config['label_config'],
-                           train_label_table_name,
-                           date_to_string(train_dates['label_start_time']),
-                           date_to_string(train_dates['label_end_time']))
-        test_label_table_name = f'{table_prefix}_test_labels'
+                      train_label_table_name,
+                      date_to_string(train_dates['label_start_time']),
+                      date_to_string(train_dates['label_end_time']),
+                      preprocessing_prefix)
+        test_label_table_name = f'{exp_table_prefix}_test_labels'
         select_labels(conn, config['label_config'], 
-                           test_label_table_name,
-                           date_to_string(test_dates['label_start_time']),
-                           date_to_string(test_dates['label_end_time']))
+                      test_label_table_name,
+                      date_to_string(test_dates['label_start_time']),
+                      date_to_string(test_dates['label_end_time']),
+                      preprocessing_prefix)
 
         # training
-        print('Training not integrated yet.')
+        train(train_feature_table_name, train_label_table_name,
+              save_dir=train_save_dir)
+        train_model_paths = [Path(train_save_dir) / file for file \
+                             in os.listdir(train_save_dir) if file.endswith('.pkl')]
+        train_metrics = evaluate(train_feature_table_name,
+                                 train_label_table_name,
+                                 train_model_paths,
+                                 log_dir=train_save_dir)
+        print(pd.DataFrame.from_dict(train_metrics))
 
         # testing
-        print('Testing phase not implemented yet.')
+        test_metrics = evaluate(test_feature_table_name,
+                                test_label_table_name,
+                                train_model_paths,
+                                log_dir=test_save_dir)
+        print(pd.DataFrame.from_dict(test_metrics))
 
 
 if __name__ == '__main__':

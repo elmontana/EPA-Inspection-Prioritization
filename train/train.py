@@ -8,7 +8,6 @@ from pathlib import Path
 from utils.data_utils import get_data
 
 
-
 def create_model(model_class_name, model_kwargs):
     """
     Dynamically instantiate a model given its name and arguments.
@@ -27,7 +26,7 @@ def create_model(model_class_name, model_kwargs):
 
 def get_model_configurations(config):
     """
-    Get the set of all model configurations specified by the config. 
+    Get the set of all model configurations specified by the config.
 
     Arguments:
         - config: a config dictionary (loaded from yaml)
@@ -36,7 +35,7 @@ def get_model_configurations(config):
         - model_configurations: a list of configurations in the form (model_name, kwargs)
     """
     model_configurations = []
-    for model_name, model_kwargs_set in config['grid_config'].items():
+    for model_name, model_kwargs_set in config['model_config'].items():
         values_set = itertools.product(*model_kwargs_set.values())
         kwargs_set = [{k: v for k, v in zip(model_kwargs_set.keys(), values)} for values in values_set]
 
@@ -47,7 +46,7 @@ def get_model_configurations(config):
 
 
 def train(
-    feature_table, label_table, 
+    feature_table, label_table,
     config_path='./experiments/test_run.yaml', save_dir='./saved_models'):
     """
     Train models as specified by a config file.
@@ -66,7 +65,7 @@ def train(
     # Load config
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
-    
+
     # Load data
     X, y = get_data(feature_table, label_table)
 
@@ -96,7 +95,6 @@ def train(
     log_text = '\n\n'.join(model_descriptions)
     with open(log_path, 'w') as log_file:
         log_file.writelines(log_text)
-
 
 
 if __name__ == '__main__':
