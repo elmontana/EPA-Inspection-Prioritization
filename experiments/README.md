@@ -26,4 +26,4 @@ For example, the following entry would create 4 separate decision-tree models.
     max_depth: [1, 5]
     max_features: [null, 'sqrt']
 ```
-The `(max_depth, max_features)` parameters for each model would be: `(1, null)`, `(1, 'sqrt')`, `(5, null)`, and `(5, 'sqrt')`.
+The `(max_depth, max_features)` parameters for each model would be: `(1, None)`, `(1, 'sqrt')`, `(5, None)`, and `(5, 'sqrt')`.
