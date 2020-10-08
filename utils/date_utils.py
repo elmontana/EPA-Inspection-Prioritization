@@ -2,6 +2,7 @@ from datetime import datetime
 import parsedatetime as pdt
 
 
+
 def parse_date(date_str):
     return datetime.strptime(date_str, '%Y-%m-%d')
 
