@@ -44,7 +44,7 @@ def parse_temporal_config(temporal_config):
     return train_splits, test_splits
 
 
-def generate_cohort_table(conn, cohort_config, as_of_date, in_prefix,
+def gen_cohort_table(conn, cohort_config, as_of_date, in_prefix,
                           out_prefix):
     cohort_table_name = f'{out_prefix}_cohort'
     cohort_sql = cohort_config['query'].replace('{as_of_date}', as_of_date) \
@@ -103,11 +103,11 @@ def main(config, skip_preprocessing, log_dir):
 
         # generate cohort table
         cohort_as_of_date = date_to_string(test_dates['label_end_time'])
-        cohort_table_name = generate_cohort_table(conn,
-                                                  config['cohort_config'],
-                                                  cohort_as_of_date,
-                                                  preprocessing_prefix,
-                                                  exp_table_prefix)
+        cohort_table_name = gen_cohort_table(conn,
+                                             config['cohort_config'],
+                                             cohort_as_of_date,
+                                             preprocessing_prefix,
+                                             exp_table_prefix)
 
         # aggregate features
         train_feature_table_name = f'{exp_table_prefix}_train_features'
