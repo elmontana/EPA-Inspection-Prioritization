@@ -2,11 +2,17 @@
 
 ## Code
 
-### Prerequisites
+### Getting Started
 
-* Clone this repo in the server where the database is located.
-* Setup `POSTGRES_HOST`, `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD`, and `POSTGRES_PORT` as environment variables in the shell where the program is executed.
-* Install required packages in `requirements.txt` via `pip3 install -r requirements.txt`.
+Clone this repo on the server where the database is located:
+```
+git clone https://github.com/dssg/mlpolicylab_fall20_epa3
+```
+Install all required packages:
+```
+cd mlpolicylab_fall20_epa3
+pip3 install -r requirements.txt
+```
 
 ### Running the Code
 
