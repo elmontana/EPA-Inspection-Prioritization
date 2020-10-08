@@ -1,19 +1,20 @@
-import os
-import yaml
 import click
 import getpass
-import pandas as pd
-from pathlib import Path
-from attrdict import AttrDict
+import glob
+import os
+import yaml
 
+from attrdict import AttrDict
+from model_prep.aggregate_features import main as aggregate_features
+from model_prep.select_labels import main as select_labels
+from preprocessing.run import main as run_preprocess
 from utils.date_utils import parse_date, parse_interval
 from utils.date_utils import date_to_string, get_current_time_string
 from utils.sql_utils import get_connection, run_sql_from_string
-from preprocessing.run import main as run_preprocess
-from model_prep.aggregate_features import main as aggregate_features
-from model_prep.select_labels import main as select_labels
-from train.train import train
-from evaluate.evaluate import evaluate
+
+from train import train
+from evaluate import evaluate
+
 
 
 def parse_temporal_config(temporal_config):
@@ -46,14 +47,14 @@ def parse_temporal_config(temporal_config):
 
 def generate_cohort_table(conn, cohort_config, as_of_date, in_prefix,
                           out_prefix):
-    cohort_table_name = f'{out_prefix}_cohort'
+    cohort_table = f'{out_prefix}_cohort'
     cohort_sql = cohort_config['query'].replace('{as_of_date}', as_of_date) \
                                        .replace('{prefix}', in_prefix)
-    drop_sql = f'drop table if exists {cohort_table_name};'
-    create_sql = f'create table {cohort_table_name} as ({cohort_sql});'
+    drop_sql = f'drop table if exists {cohort_table};'
+    create_sql = f'create table {cohort_table} as ({cohort_sql});'
     run_sql_from_string(conn, drop_sql)
     run_sql_from_string(conn, create_sql)
-    return cohort_table_name
+    return cohort_table
 
 
 @click.command()
@@ -101,57 +102,73 @@ def main(config, skip_preprocessing, log_dir):
         test_save_dir = os.path.join(os.getcwd(), log_dir, prefix,
                                      'test_' + exp_time)
 
-        # generate cohort table
+        # Generate cohort table
         cohort_as_of_date = date_to_string(test_dates['label_end_time'])
-        cohort_table_name = generate_cohort_table(conn,
-                                                  config['cohort_config'],
-                                                  cohort_as_of_date,
-                                                  preprocessing_prefix,
-                                                  exp_table_prefix)
+        cohort_table = generate_cohort_table(
+            conn,
+            config['cohort_config'],
+            cohort_as_of_date,
+            preprocessing_prefix,
+            exp_table_prefix)
 
-        # aggregate features
-        train_feature_table_name = f'{exp_table_prefix}_train_features'
-        aggregate_features(conn, config['feature_config'], cohort_table_name,
-                           train_feature_table_name,
-                           date_to_string(train_dates['feature_start_time']),
-                           date_to_string(train_dates['feature_end_time']),
-                           preprocessing_prefix)
-        test_feature_table_name = f'{exp_table_prefix}_test_features'
-        aggregate_features(conn, config['feature_config'], cohort_table_name,
-                           test_feature_table_name,
-                           date_to_string(test_dates['feature_start_time']),
-                           date_to_string(test_dates['feature_end_time']),
-                           preprocessing_prefix)
+        # Aggregate features for train & test data into new tables
+        train_feature_table = f'{exp_table_prefix}_train_features'
+        aggregate_features(
+            conn, config['feature_config'], 
+            cohort_table,
+            train_feature_table,
+            date_to_string(train_dates['feature_start_time']),
+            date_to_string(train_dates['feature_end_time']),
+            preprocessing_prefix)
+        test_feature_table = f'{exp_table_prefix}_test_features'
+        aggregate_features(
+            conn, config['feature_config'], 
+            cohort_table,
+            test_feature_table,
+            date_to_string(test_dates['feature_start_time']),
+            date_to_string(test_dates['feature_end_time']),
+            preprocessing_prefix)
 
-        # aggregate labels
-        train_label_table_name = f'{exp_table_prefix}_train_labels'
-        select_labels(conn, config['label_config'],
-                      train_label_table_name,
-                      date_to_string(train_dates['label_start_time']),
-                      date_to_string(train_dates['label_end_time']),
-                      preprocessing_prefix)
-        test_label_table_name = f'{exp_table_prefix}_test_labels'
-        select_labels(conn, config['label_config'], 
-                      test_label_table_name,
-                      date_to_string(test_dates['label_start_time']),
-                      date_to_string(test_dates['label_end_time']),
-                      preprocessing_prefix)
+        # Aggregate labels for train & test data into new tables
+        train_label_table = f'{exp_table_prefix}_train_labels'
+        select_labels(
+            conn, config['label_config'],
+            train_label_table,
+            date_to_string(train_dates['label_start_time']),
+            date_to_string(train_dates['label_end_time']),
+            preprocessing_prefix)
+        test_label_table = f'{exp_table_prefix}_test_labels'
+        select_labels(
+            conn, config['label_config'], 
+            test_label_table,
+            date_to_string(test_dates['label_start_time']),
+            date_to_string(test_dates['label_end_time']),
+            preprocessing_prefix)
 
-        # training
-        train(config, train_feature_table_name, train_label_table_name,
-              save_dir=train_save_dir)
-        train_model_paths = [Path(train_save_dir) / file for file \
-                             in os.listdir(train_save_dir) if file.endswith('.pkl')]
-        train_metrics = evaluate(config, train_feature_table_name,
-                                 train_label_table_name,
-                                 train_model_paths,
-                                 log_dir=train_save_dir)
+        # Train models as specified by config
+        train(
+            config, 
+            train_feature_table, 
+            train_label_table,
+            save_dir=train_save_dir)
 
-        # testing
-        test_metrics = evaluate(config, test_feature_table_name,
-                                test_label_table_name,
-                                train_model_paths,
-                                log_dir=test_save_dir)
+        # Evaluate our models on the training data
+        model_paths = glob.glob(f'{train_save_dir}/*.pkl')
+        train_results = evaluate(
+            config, 
+            train_feature_table,
+            train_label_table,
+            model_paths,
+            log_dir=train_save_dir)
+
+        # Evaluate our models on the test data
+        test_results = evaluate(
+            config, 
+            test_feature_table,
+            test_label_table,
+            model_paths,
+            log_dir=test_save_dir)
+
 
 
 if __name__ == '__main__':

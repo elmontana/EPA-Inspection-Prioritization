@@ -2,7 +2,6 @@ import importlib
 import itertools
 import os
 import pickle
-import yaml
 
 from pathlib import Path
 from utils.data_utils import get_data
@@ -32,7 +31,7 @@ def get_model_configurations(config):
     This function enumerates all possible combinations.
 
     Arguments:
-        - config: a config dictionary for an experiment (loaded from yaml)
+        - config: a configuration dictionary for an experiment (loaded from yaml)
 
     Returns:
         - model_configurations: a list of configurations in the form (model_name, kwargs)
@@ -53,7 +52,7 @@ def train(config, feature_table, label_table, save_dir='./saved_models/'):
     Train models as specified by a config file.
 
     Arguments:
-        - config: configuration dictionary for this experiment
+        - config: configuration dictionary for this experiment  (loaded from yaml)
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
         - save_dir: directory for saving models
