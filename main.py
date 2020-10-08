@@ -27,10 +27,10 @@ def parse_temporal_config(temporal_config):
     for i in range(temporal_config['num_train_repeat']):
         train_xs = xs + ri * i
         train_splits.append({
-            'feature_start_time': xs,
-            'feature_end_time': xs + xi,
-            'label_start_time': xs + xi,
-            'label_end_time': xs + xi + yi
+            'feature_start_time': train_xs,
+            'feature_end_time': train_xs + xi,
+            'label_start_time': train_xs + xi,
+            'label_end_time': train_xs + xi + yi
         })
 
         test_xs = train_xs + xi + yi
@@ -70,7 +70,7 @@ def main(config, skip_preprocessing, log_dir):
 
     # get db connection
     conn = get_connection()
-    
+
     # get basic info of experiment
     exp_version = config['version']
     exp_name = config["experiment_name"]
@@ -131,7 +131,7 @@ def main(config, skip_preprocessing, log_dir):
                       date_to_string(train_dates['label_end_time']),
                       preprocessing_prefix)
         test_label_table_name = f'{exp_table_prefix}_test_labels'
-        select_labels(conn, config['label_config'], 
+        select_labels(conn, config['label_config'],
                       test_label_table_name,
                       date_to_string(test_dates['label_start_time']),
                       date_to_string(test_dates['label_end_time']),
