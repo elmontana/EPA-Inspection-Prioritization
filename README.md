@@ -1,7 +1,5 @@
 # EPA Team 3
 
-## Code
-
 ### Getting Started
 
 Clone this repo on the server where the database is located:
@@ -21,13 +19,13 @@ Simply execute `python3 main.py`. Useful command line arguments are listed below
 - `config`: path to the config file.
 - `skip_preprocessing`: skip the preprocessing step.
 
-### Description of Program
+### How It Works
 
 Currently the code reads the config file (default to experiments/test_run.yaml), creates config for train/test splits, preprocesses data (which can be skipped using flag `--skip_preprocessing`), generates a cohort table, generates the features, and imputes the missing values.
 
 The program creates tables in the `cleaned`, `semantic`, and `experiments` schemas of the database. In training and evaluation steps, it also creates local model dumps and evaluation result forms in a log directory.
 
-## EPA Data Notes
+### EPA Data Notes
 
 The New York State Department of Environmental Conservation (NYSDEC) is responsible for inspecting hazardous waste-producing facilities to ensure compliance with federal regulations. As there are over 50,000 facilities and inspections are very time consuming, it is important to ensure that inspectors spend their time inspecting the facilities with the highest risk of violating these regulations.
 
