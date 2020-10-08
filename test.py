@@ -1,6 +1,8 @@
+import numpy as np
 import os
 import pandas as pd
 import pickle
+import yaml
 
 from pathlib import Path
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
@@ -48,7 +50,8 @@ def test(
         results.append(model_results)
 
     # Convert results to dataframe table
-    results = pd.DataFrame(np.array(results), index=model_paths, columns=metrics)
+    columns = [metric.__name__ for metric in metrics]
+    results = pd.DataFrame(np.array(results), index=model_paths, columns=columns)
     
     # Log results to csv file
     experiment_name = config['experiment_name']
