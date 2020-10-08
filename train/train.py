@@ -13,8 +13,8 @@ def create_model(model_class_name, model_kwargs):
     Dynamically instantiate a model given its name and arguments.
 
     Arguments:
-        - model_class_name: the name of the model class (e.g. sklearn.tree.DecisionTreeClassifier)
-        - model_kwargs: the keyword arguments to pass to the model's constructor
+        - model_class_name: the name of the model class (e.g. 'sklearn.tree.DecisionTreeClassifier')
+        - model_kwargs: a dictionary of keyword arguments to pass to the model's constructor
 
     Returns:
         - model: an instantiated model
@@ -26,10 +26,12 @@ def create_model(model_class_name, model_kwargs):
 
 def get_model_configurations(config):
     """
-    Get the set of all model configurations specified by the config.
+    Get the set of all model configurations specified by the config. 
+    For each model keyword argument, the config specifies a list of potential values.
+    This function enumerates all possible combinations.
 
     Arguments:
-        - config: a config dictionary (loaded from yaml)
+        - config: a config dictionary for an experiment (loaded from yaml)
 
     Returns:
         - model_configurations: a list of configurations in the form (model_name, kwargs)
@@ -46,25 +48,22 @@ def get_model_configurations(config):
 
 
 def train(
+    config,
     feature_table, label_table,
-    config_path='./experiments/test_run.yaml', save_dir='./saved_models'):
+    save_dir='./saved_models'):
     """
     Train models as specified by a config file.
 
     Arguments:
+        - config: config dict
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
-        - config_path: path to configuration file
         - save_dir: directory for saving models
     """
 
     # Create save directory if not exists
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-
-    # Load config
-    with open(config_path, 'r') as file:
-        config = yaml.safe_load(file)
 
     # Load data
     X, y = get_data(feature_table, label_table)
@@ -95,8 +94,3 @@ def train(
     log_text = '\n\n'.join(model_descriptions)
     with open(log_path, 'w') as log_file:
         log_file.writelines(log_text)
-
-
-if __name__ == '__main__':
-    train('semantic.reporting', 'semantic.labels')
-

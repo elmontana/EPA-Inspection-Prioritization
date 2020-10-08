@@ -138,22 +138,20 @@ def main(config, skip_preprocessing, log_dir):
                       preprocessing_prefix)
 
         # training
-        train(train_feature_table_name, train_label_table_name,
+        train(config, train_feature_table_name, train_label_table_name,
               save_dir=train_save_dir)
         train_model_paths = [Path(train_save_dir) / file for file \
                              in os.listdir(train_save_dir) if file.endswith('.pkl')]
-        train_metrics = evaluate(train_feature_table_name,
+        train_metrics = evaluate(config, train_feature_table_name,
                                  train_label_table_name,
                                  train_model_paths,
                                  log_dir=train_save_dir)
-        print(pd.DataFrame.from_dict(train_metrics))
 
         # testing
-        test_metrics = evaluate(test_feature_table_name,
+        test_metrics = evaluate(config, test_feature_table_name,
                                 test_label_table_name,
                                 train_model_paths,
                                 log_dir=test_save_dir)
-        print(pd.DataFrame.from_dict(test_metrics))
 
 
 if __name__ == '__main__':
