@@ -1,9 +1,15 @@
 # Experiments
 
-Each experiment is specified by a configuration file (e.g. [`test_run.yaml`](experiments/test_run.yaml)). 
-Here we provide some general information about creating experiment configs.
+Each experiment is specified by a configuration file (see an example in [`test_run.yaml`](https://github.com/dssg/mlpolicylab_fall20_epa3/blob/master/experiments/test_run.yaml)). 
+Here we provide some general information about creating and understanding these experiment config files.
 
 #### `temporal_config`
+There are 5 important fields within `temporal_config`. These are:
+- `feature_start_time`: the start date from which we are taking features (in the form 'yyyy-mm-dd')
+- `feature_duration`: duration over which to aggregate features (e.g. '2 years')
+- `label_duration`: duration over which to aggregate labels (e.g. '1 year'). We assume that the label time period starts exactly at the end of the feature time period.
+- `num_train_repeat`: 
+- `train_repeat_interval`: 
 
 #### `cohort_config`
 
