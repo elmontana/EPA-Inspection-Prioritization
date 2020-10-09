@@ -18,7 +18,10 @@ from evaluate import evaluate
 
 
 def parse_temporal_config(temporal_config):
-    """"
+    """
+    Get 
+
+
     Takes a config file and returns two lists of dictionaries for each iteration of model training/testing.
     One list is for the test set, the other is for the training set.
     Each dictionary contains critical feature and label start and endtimes.
@@ -29,8 +32,9 @@ def parse_temporal_config(temporal_config):
     Returns:
         train_splits: list of dictionaries of feature/label start/endtimes for various training sets
         test_splits: list of dictionaries of feature/label start/endtimes for various testing sets
-    """"
-    #Parse config file
+    """
+
+    # Convert dates and time invervals from temporal_config into datetime objects
     xs = parse_date(temporal_config['feature_start_time'])
     xi = parse_interval(temporal_config['feature_duration'])
     yi = parse_interval(temporal_config['label_duration'])
