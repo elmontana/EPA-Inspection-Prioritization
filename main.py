@@ -30,7 +30,7 @@ def parse_temporal_config(temporal_config):
         train_splits: list of dictionaries of feature/label start/endtimes for various training sets
         test_splits: list of dictionaries of feature/label start/endtimes for various testing sets
     """"
-    #Parse config file
+    # Parse config file
     xs = parse_date(temporal_config['feature_start_time'])
     xi = parse_interval(temporal_config['feature_duration'])
     yi = parse_interval(temporal_config['label_duration'])
@@ -39,7 +39,7 @@ def parse_temporal_config(temporal_config):
     train_splits = []
     test_splits = []
     
-    #For every training instance, create a dictionary of start and endtimes for the training and testing data
+    # For every training instance, create a dictionary of start and endtimes for the training and testing data
     for i in range(temporal_config['num_train_repeat']):
         train_xs = xs + ri * i 
         train_splits.append({
@@ -49,7 +49,7 @@ def parse_temporal_config(temporal_config):
             'label_end_time': train_xs + xi + yi
         })
 
-        test_xs = train_xs + yi ### I think this violates the disjoint test/training sets that Rayid was discussing yesterday, should add xi
+        test_xs = train_xs + xi
         test_splits.append({
             'feature_start_time': test_xs,
             'feature_end_time': test_xs + xi,
