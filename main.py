@@ -45,7 +45,7 @@ def parse_temporal_config(temporal_config):
     for i in range(temporal_config['num_train_repeat']):
         train_start_time = feature_start + repeat_interval * i 
         train_splits.append({
-            'feature_start_time': train_xs,
+            'feature_start_time': train_start_time,
             'feature_end_time': train_start_time + feature_duration,
             'label_start_time': train_start_time + feature_duration,
             'label_end_time': train_start_time + feature_duration + label_duration
