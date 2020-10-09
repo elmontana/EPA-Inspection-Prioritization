@@ -12,7 +12,7 @@ There are 5 important fields within `temporal_config`. These are:
 - `num_train_repeat`: the number of train-test set splits to generate.
 - `train_repeat_interval`: the interval for building multiple train-test set splits.
 
-Below, we show a illustration of what the temporal config parameters mean.
+Below, we show an illustration of what the temporal config parameters mean.
 
 ![Illustration of Temporal Config](https://github.com/dssg/mlpolicylab_fall20_epa3/blob/master/experiments/temporal_config_illustration.png)
 
