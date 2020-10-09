@@ -19,6 +19,9 @@ def evaluate(config, feature_table, label_table, model_paths, log_dir='./results
         - label_table: name of table containing label features
         - model_paths: list of paths to the models being tested
         - log_dir: directory for saving evaluation results
+    
+    Returns:
+        - list of evaluation metrics for each model tested
     """
 
     # Create log directory if not exists
