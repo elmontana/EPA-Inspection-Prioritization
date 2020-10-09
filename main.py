@@ -18,54 +18,55 @@ from evaluate import evaluate
 
 
 def parse_temporal_config(temporal_config):
-    """"
-    Takes a config file and returns two lists of dictionaries for each iteration of model training/testing.
-    One list is for the test set, the other is for the training set.
+    """
+    Takes a config file and returns two lists of dictionaries for each iteration of 
+    model training/testing. One list is for the test set, the other is for the training set.
     Each dictionary contains critical feature and label start and endtimes.
     
-    Args:
-        temporal_config: config file with labels for feature_start_time, feature_duration, label_duration, and the train_repeat_interval
+    Arguments:
+        temporal_config: config file with labels for 
+            feature_start_time, feature_duration, label_duration, and the train_repeat_interval
         
     Returns:
         train_splits: list of dictionaries of feature/label start/endtimes for various training sets
         test_splits: list of dictionaries of feature/label start/endtimes for various testing sets
-    """"
-    # Parse config file
-    xs = parse_date(temporal_config['feature_start_time'])
-    xi = parse_interval(temporal_config['feature_duration'])
-    yi = parse_interval(temporal_config['label_duration'])
-    ri = parse_interval(temporal_config['train_repeat_interval'])
+    """
+    # Convert dates and time invervals from temporal_config into `datetime` objects
+    feature_start = parse_date(temporal_config['feature_start_time'])
+    feature_duration = parse_interval(temporal_config['feature_duration'])
+    label_duration = parse_interval(temporal_config['label_duration'])
+    repeat_interval = parse_interval(temporal_config['train_repeat_interval'])
 
     train_splits = []
     test_splits = []
     
-    # For every training instance, create a dictionary of start and endtimes for the training and testing data
+    # For every training instance, create a dictionary of start and endtimes
+    # for the training and testing data
     for i in range(temporal_config['num_train_repeat']):
-        train_xs = xs + ri * i 
+        train_start_time = feature_start + repeat_interval * i 
         train_splits.append({
             'feature_start_time': train_xs,
-            'feature_end_time': train_xs + xi,
-            'label_start_time': train_xs + xi,
-            'label_end_time': train_xs + xi + yi
+            'feature_end_time': train_start_time + feature_duration,
+            'label_start_time': train_start_time + feature_duration,
+            'label_end_time': train_start_time + feature_duration + label_duration
         })
 
-        test_xs = train_xs + xi
+        test_start_time = train_start_time + feature_duration
         test_splits.append({
-            'feature_start_time': test_xs,
-            'feature_end_time': test_xs + xi,
-            'label_start_time': test_xs + xi,
-            'label_end_time': test_xs + xi + yi
+            'feature_start_time': test_start_time,
+            'feature_end_time': test_start_time + feature_duration,
+            'label_start_time': test_start_time + feature_duration,
+            'label_end_time': test_start_time+ feature_duration + label_duration
         })
 
     return train_splits, test_splits
 
 
-def gen_cohort_table(conn, cohort_config, as_of_date, in_prefix,
-                          out_prefix):
+def gen_cohort_table(conn, cohort_config, as_of_date, in_prefix, out_prefix):
     """
     Creates a table of facility data with information from before the passed in date.
     
-    Args:
+    Arguments:
         conn: a connection to the database
         cohort_config: config file
         as_of_date: str in format 'YYYY-MM-DD' indicating most recent date in the new table
@@ -173,29 +174,24 @@ def main(config, skip_preprocessing, log_dir):
             date_to_string(test_dates['label_end_time']),
             preprocessing_prefix)
 
-        # Train models as specified by config
+        # Train models as specified by our experimental configuration
         train(
             config, 
-            train_feature_table_name, 
-            train_label_table_name,
+            train_feature_table_name, train_label_table_name,
             save_dir=train_save_dir)
 
         # Evaluate our models on the training data
         model_paths = glob.glob(f'{train_save_dir}/*.pkl')
         train_results = evaluate(
             config, 
-            train_feature_table_name,
-            train_label_table_name,
-            model_paths,
-            log_dir=train_save_dir)
+            train_feature_table_name, train_label_table_name,
+            model_paths, log_dir=train_save_dir)
 
         # Evaluate our models on the test data
         test_results = evaluate(
             config, 
-            test_feature_table_name,
-            test_label_table_name,
-            model_paths,
-            log_dir=test_save_dir)
+            test_feature_table_name, test_label_table_name,
+            model_paths, log_dir=test_save_dir)
 
 
 

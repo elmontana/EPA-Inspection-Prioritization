@@ -11,7 +11,7 @@ from utils.data_utils import get_data
 
 def evaluate(config, feature_table, label_table, model_paths, log_dir='./results/'):
     """
-    Test models on validation data.
+    Test models on validation data and save the results to a csv file.
 
     Arguments:
         - config: configuration dictionary for this experiment (loaded from yaml)
@@ -21,7 +21,8 @@ def evaluate(config, feature_table, label_table, model_paths, log_dir='./results
         - log_dir: directory for saving evaluation results
     
     Returns:
-        - list of evaluation metrics for each model tested
+        - results: a DataFrame containing the results of the 
+            evaluation metrics for each model
     """
 
     # Create log directory if not exists
