@@ -4,8 +4,22 @@ from utils.sql_utils import run_sql_from_string, get_table_columns
 
 
 def get_impute_str(column_name, imputation):
+    """
+    Creates string for sql imputation
+    
+    Args:
+        - column_name: str name of column to be imputed
+        - imputation: str indicating method of imputation
+    
+    Returns:
+        - impute_sql: str sql imputation code
+        - impute_col_flag: boolean if true an impuatation flag column will be created
+    """
     impute_sql = ''
+    #check whether to create an imputation flag
     impute_col_flag = not imputation.endswith('_noflag')
+    
+    #determine type of imputation and create appropriate sql code to do so
     if imputation.startswith('zero'):
         impute_sql = '0'
     elif imputation.startswith('mean') or imputation.startswith('avg'):
@@ -16,21 +30,35 @@ def get_impute_str(column_name, imputation):
         impute_sql = f'max({column_name}) over ()'
     else:
         raise ValueError(f'Unrecognized impute method {imputation}.')
-
+    
     return (impute_sql, impute_col_flag)
 
 
 def main(conn, config, cohort_table, to_table,
          start_time='0000-01-01', end_time='9999-12-31',
          preprocessing_prefix=None):
+    """
+    Aggregates Features
+    
+    Args:
+        -conn: connection to the database
+        -config: config file
+        -cohort_table: str sql tablename for cohort to aggregate features from
+        -to_table: str sql tablename for aggregated feature table to be stored
+        -start_time: str in format 'YYYY-MM-DD' indicating the feature start time for the cohort
+        -end_time: str in format 'YYYY-MM-DD' indicating the feature end time for the cohort
+        -preprocessing_prefix: str indicating prefix to be used in preprocessng (if any)
+    """
     join_query = f'select * from {cohort_table}'
     imputes = []
+    # For each table features need to be aggregated from, impute missing features, and create sql string that aggregates features by facility, and left joins them to the cohort table
     for agg_table in config:
         output_prefix = agg_table['prefix']
         input_table = agg_table['from_table']
         input_table = input_table.replace('{prefix}', preprocessing_prefix)
         table_type = agg_table['table_type']
-
+        
+        #if the row driver is facilities, impute features and join to the cohort table
         if table_type == 'entity':
             table_columns = get_table_columns(conn, input_table)
             feature_names = [x for x in table_columns if x != 'entity_id']
@@ -42,6 +70,8 @@ def main(conn, config, cohort_table, to_table,
 
             join_query += ' '
             join_query += f'left join {input_table} using (entity_id)'
+        
+        # if the row driver is inspections, impute features, aggregate to the facility level, and join to the cohort table
         elif table_type == 'event':
             feature_columns = []
             date_col_name = agg_table['date_column_name']
