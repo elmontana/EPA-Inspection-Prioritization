@@ -18,6 +18,19 @@ from evaluate import evaluate
 
 
 def parse_temporal_config(temporal_config):
+    """"
+    Takes a config file and returns two lists of dictionaries for each iteration of model training/testing.
+    One list is for the test set, the other is for the training set.
+    Each dictionary contains critical feature and label start and endtimes.
+    
+    Args:
+        temporal_config: config file with labels for feature_start_time, feature_duration, label_duration, and the train_repeat_interval
+        
+    Returns:
+        train_splits: list of dictionaries of feature/label start/endtimes for various training sets
+        test_splits: list of dictionaries of feature/label start/endtimes for various testing sets
+    """"
+    #Parse config file
     xs = parse_date(temporal_config['feature_start_time'])
     xi = parse_interval(temporal_config['feature_duration'])
     yi = parse_interval(temporal_config['label_duration'])
@@ -25,8 +38,10 @@ def parse_temporal_config(temporal_config):
 
     train_splits = []
     test_splits = []
+    
+    #For every training instance, create a dictionary of start and endtimes for the training and testing data
     for i in range(temporal_config['num_train_repeat']):
-        train_xs = xs + ri * i
+        train_xs = xs + ri * i 
         train_splits.append({
             'feature_start_time': train_xs,
             'feature_end_time': train_xs + xi,
@@ -34,7 +49,7 @@ def parse_temporal_config(temporal_config):
             'label_end_time': train_xs + xi + yi
         })
 
-        test_xs = train_xs + yi
+        test_xs = train_xs + yi ### I think this violates the disjoint test/training sets that Rayid was discussing yesterday, should add xi
         test_splits.append({
             'feature_start_time': test_xs,
             'feature_end_time': test_xs + xi,
@@ -47,6 +62,19 @@ def parse_temporal_config(temporal_config):
 
 def gen_cohort_table(conn, cohort_config, as_of_date, in_prefix,
                           out_prefix):
+    """
+    Creates a table of facility data with information from before the passed in date.
+    
+    Args:
+        conn: a connection to the database
+        cohort_config: config file
+        as_of_date: str in format 'YYYY-MM-DD' indicating most recent date in the new table
+        in_prefix: str providing prefix for table from which to select data
+        out_prefix: str providing prefix for the table created
+        
+    Returns:
+        cohort_table_name: str name of the table created
+    """
     cohort_table_name = f'{out_prefix}_cohort'
     cohort_sql = cohort_config['query'].replace('{as_of_date}', as_of_date) \
                                        .replace('{prefix}', in_prefix)
