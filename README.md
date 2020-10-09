@@ -22,10 +22,12 @@ To get information about different command line arguments, run `python3 main.py 
 
 ### How It Works
 
-Every experiment is specified by a configuration file (e.g. `experiments/test_run.yaml`). Detailed documentations of the configuration file is at `experiments/README.md`.
+Every experiment is specified by a configuration file (e.g. [`experiments/test_run.yaml`](https://github.com/dssg/mlpolicylab_fall20_epa3/blob/master/experiments/test_run.yaml)). 
+Detailed documentation about configuration files can be found in [`experiments/README.md`](https://github.com/dssg/mlpolicylab_fall20_epa3/blob/master/experiments/README.md).
+
 Currently the code reads the config file (default to `experiments/test_run.yaml`), creates config for train/test splits, preprocesses data (which can be skipped using flag `--skip_preprocessing`), generates a cohort table, generates the features, imputes the missing values in the features, trains a set of models while performing grid search over provided set of parameter combinations, and tests each model.
 
-The program creates tables in the `cleaned`, `semantic`, and `experiments` schemas of the database. During training and evaluation, it also creates local model dumps and evaluation result forms in a log directory.
+The program creates tables in the `cleaned`, `semantic`, and `experiments` schemas of the database. During training and evaluation, it also creates local model dumps and evaluation result tables in a log directory.
 
 ### EPA Data Notes
 
