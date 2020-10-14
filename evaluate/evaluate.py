@@ -9,6 +9,21 @@ from utils.data_utils import get_data
 
 
 
+def get_predictions(model, X, threshold=0.5):
+    """
+    Get predictions from a model. 
+    
+    Arguments:
+        - model: the trained model
+        - X (np.ndarray): an array of features
+        - threshold (float): a binary classification threshold between (0, 1)
+    
+    Returns:
+        - y_pred: an array of label predictions
+    """
+    return model.predict(X) > threshold
+
+
 def evaluate(config, feature_table, label_table, model_paths, log_dir='./results/'):
     """
     Test models on validation data and save the results to a csv file.
@@ -42,12 +57,13 @@ def evaluate(config, feature_table, label_table, model_paths, log_dir='./results
             model = pickle.load(file)
 
         # Evaluate predictions
-        y_pred = model.predict(X) > 0.5
-        model_results = [metric(y, y_pred) for metric in metrics]
+        threshold = 0.5
+        y_pred = get_predictions(model, X, threshold=threshold)
+        model_results = [metric(y, y_pred) for metric in metrics] + [threshold]
         results.append(model_results)
 
     # Convert results to dataframe table
-    columns = [metric.__name__ for metric in metrics]
+    columns = [metric.__name__ for metric in metrics] + ['threshold']
     results = pd.DataFrame(np.array(results), index=model_paths, columns=columns)
 
     # Save results to csv file
