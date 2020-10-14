@@ -1,6 +1,6 @@
 import numpy as np
+from ..utils import sql_utils as sql
 
-from utils.sql_utils import run_sql_from_string, get_table_columns
 
 
 def get_impute_str(column_name, imputation):
@@ -34,6 +34,7 @@ def get_impute_str(column_name, imputation):
     return (impute_sql, impute_col_flag)
 
 
+
 def main(conn, config, cohort_table, to_table,
          start_time='0000-01-01', end_time='9999-12-31',
          preprocessing_prefix=None):
@@ -60,7 +61,7 @@ def main(conn, config, cohort_table, to_table,
 
         #if the row driver is facilities, impute features and join to the cohort table
         if table_type == 'entity':
-            table_columns = get_table_columns(conn, input_table)
+            table_columns = sql.get_table_columns(conn, input_table)
             feature_names = [x for x in table_columns if x != 'entity_id']
 
             for feature_name in feature_names:
@@ -111,4 +112,4 @@ def main(conn, config, cohort_table, to_table,
     select_str = ', '.join(select_columns)
     select_sql = f'select entity_id, {select_str} from ({join_query}) join_query'
 
-    run_sql_from_string(conn, f'create table {to_table} as ({select_sql});')
+    sql.run_sql_from_string(conn, f'create table {to_table} as ({select_sql});')

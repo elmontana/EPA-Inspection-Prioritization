@@ -4,7 +4,9 @@ Created on Tue Oct  6 20:12:50 2020
 
 @author: Erika Montana
 """
-from utils.sql_utils import run_sql_from_string
+from ..utils import sql_utils as sql
+
+
 
 def main(conn, label_config, table_name, start_date, end_date,
          preprocessing_prefix):
@@ -25,5 +27,5 @@ def main(conn, label_config, table_name, start_date, end_date,
     label_sql = label_sql.replace('{end_date}', end_date)
     drop_sql = f'drop table if exists {table_name};'
     create_sql = f'create table {table_name} as ({label_sql});'
-    run_sql_from_string(conn, drop_sql)
-    run_sql_from_string(conn, create_sql)
+    sql.run_sql_from_string(conn, drop_sql)
+    sql.run_sql_from_string(conn, create_sql)

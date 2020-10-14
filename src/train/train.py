@@ -4,7 +4,7 @@ import os
 import pickle
 
 from pathlib import Path
-from utils.data_utils import get_data
+from ..utils.data_utils import get_data
 
 
 

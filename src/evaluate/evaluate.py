@@ -5,7 +5,7 @@ import pickle
 
 from pathlib import Path
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from utils.data_utils import get_data
+from ..utils.data_utils import get_data
 
 
 
