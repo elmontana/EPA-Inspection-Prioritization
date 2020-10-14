@@ -40,9 +40,9 @@ def prepare_cohort(
     Arguments:
         - config: configuration dictionary for this experiment (loaded from yaml)
         - train_dates: a dictionary for training date ranges, with values for 
-            `feature_start_time`, `feature_end_time`, `label_start_time` and `end_start_time`
+            `feature_start_time`, `feature_end_time`, `label_start_time` and `label_end_time`
         - test_dates: a dictionary for testing date ranges, with values for 
-            `feature_start_time`, `feature_end_time`, `label_start_time` and `end_start_time`
+            `feature_start_time`, `feature_end_time`, `label_start_time` and `label_end_time`
         - preprocessing_prefix: string indicating prefix that was used in preprocessing
         - experiment_table_prefix: prefix for tables created in this experiment
 
