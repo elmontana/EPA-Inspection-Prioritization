@@ -21,7 +21,7 @@ def get_predictions(model, X, k=None):
     Returns:
         - y_pred: an array of label predictions
     """
-    if num_positive is None:
+    if k is None:
         return model.predict(X) > 0.5
     else:
         # Get the top-k highest predicted probabilities from the model
