@@ -9,19 +9,29 @@ from ..utils.data_utils import get_data
 
 
 
-def get_predictions(model, X, threshold=0.5):
+def get_predictions(model, X, k=None):
     """
     Get predictions from a model. 
     
     Arguments:
         - model: the trained model
         - X (np.ndarray): an array of features
-        - threshold (float): a binary classification threshold between (0, 1)
+        - k (int): the total number of positive labels we want to predict
     
     Returns:
         - y_pred: an array of label predictions
     """
-    return model.predict(X) > threshold
+    if num_positive is None:
+        return model.predict(X) > 0.5
+    else:
+        # Get the top-k highest predicted probabilities from the model
+        probs = model.predict_proba(X)
+        top_k = probs.argsort()[-k:][::-1]
+
+        # Return an array of label predictions
+        y_pred = np.zeros(len(probs))
+        y_pred[top_k] = 1
+        return y_pred
 
 
 def evaluate(config, feature_table, label_table, model_paths, log_dir='./results/'):
@@ -57,13 +67,12 @@ def evaluate(config, feature_table, label_table, model_paths, log_dir='./results
             model = pickle.load(file)
 
         # Evaluate predictions
-        threshold = 0.5
-        y_pred = get_predictions(model, X, threshold=threshold)
-        model_results = [metric(y, y_pred) for metric in metrics] + [threshold]
+        y_pred = get_predictions(model, X, k=700)
+        model_results = [metric(y, y_pred) for metric in metrics]
         results.append(model_results)
 
     # Convert results to dataframe table
-    columns = [metric.__name__ for metric in metrics] + ['threshold']
+    columns = [metric.__name__ for metric in metrics]
     results = pd.DataFrame(np.array(results), index=model_paths, columns=columns)
 
     # Save results to csv file
