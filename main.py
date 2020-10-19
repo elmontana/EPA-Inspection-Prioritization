@@ -49,7 +49,7 @@ def parse_temporal_config(temporal_config):
             'label_end_time': train_start_time + feature_duration + label_duration
         })
 
-        test_start_time = train_start_time + feature_duration
+        test_start_time = train_start_time + label_duration
         test_splits.append({
             'feature_start_time': test_start_time,
             'feature_end_time': test_start_time + feature_duration,
