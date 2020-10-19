@@ -92,3 +92,9 @@ def train(config, feature_table, label_table, save_dir='./saved_models/'):
     with open(log_path, 'w') as log_file:
         log_file.writelines(log_text)
 
+    model_summary = []
+    for model_config in model_configurations:
+        summary_dict = { 'model_name': model_config[0] }
+        summary_dict.update(model_config[1])
+        model_summary.append(summary_dict)
+    return model_summary

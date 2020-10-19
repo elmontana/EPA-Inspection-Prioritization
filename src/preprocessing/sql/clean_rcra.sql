@@ -52,7 +52,7 @@ create table cleaned.{prefix}_rcra_cmecomp3 as (
 );
 
 ---- 4. create br_reporting table
-drop table if exists cleaned.{prefix}_rcra_reporting;
+drop table if exists cleaned.{prefix}_rcra_reporting cascade; 
 create table cleaned.{prefix}_rcra_reporting as (
     select r.handler_id, r.sequence_number, r.hazardous_waste_page_number, r.hazardous_waste_sub_page_number, r.br_form, r.management_location,
     r.report_cycle, r.source_code, r.form_code, r.management_method, r.federal_waste_flag, r.wastewater_characteristic_indicator,

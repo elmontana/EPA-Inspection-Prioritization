@@ -59,3 +59,7 @@ For example, the following entry would create 4 separate decision-tree models.
     max_features: [null, 'sqrt']
 ```
 The `(max_depth, max_features)` parameters for each model would be: `(1, None)`, `(1, 'sqrt')`, `(5, None)`, and `(5, 'sqrt')`.
+
+#### `eval_config`
+
+The `eval_config` field specifies the metrics to use for evaluating the models. The `metrics` item defines the set of metrics to use, while the `k` item defines a list of top-k% or top-n values that the metrics will be evaluated on.

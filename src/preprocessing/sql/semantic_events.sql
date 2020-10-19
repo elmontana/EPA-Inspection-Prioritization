@@ -1,9 +1,10 @@
 drop table if exists semantic.{prefix}_events;
 create table semantic.{prefix}_events as (
-    select t.id as entity_id, v.id as event_id, d.event_date, d.found_violation, d.penalty_amount from (
+    select t.id as entity_id, v.id as event_id, d.event_date, d.knowledge_date, d.found_violation, d.penalty_amount from (
         select
         epa_handler_id, receive_date,
-        max(greatest(evaluation_start_date, violation_determined_date, actual_return_to_compliance_date, enforcement_action_date, disposition_status_date)) as event_date,
+        max(evaluation_start_date) event_date,
+        max(greatest(evaluation_start_date, violation_determined_date, actual_return_to_compliance_date, enforcement_action_date, disposition_status_date)) as knowledge_date,
         case when (sum(case when found_violation_flag = 'Y' then 1 else 0 end) > 0) then 1 else 0 end as found_violation,
         coalesce(max(final_amount), 0) as penalty_amount
         from cleaned.{prefix}_rcra_cmecomp3

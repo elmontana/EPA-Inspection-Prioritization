@@ -114,7 +114,7 @@ def main(config, skip_preprocessing, log_dir):
             preprocessing_prefix, experiment_table_prefix)
 
         # Train models as specified by our experiment configuration
-        train(
+        model_configurations = train(
             config, 
             train_feature_table, train_label_table,
             save_dir=train_save_dir)
@@ -124,13 +124,19 @@ def main(config, skip_preprocessing, log_dir):
         train_results = evaluate(
             config, 
             train_feature_table, train_label_table,
-            model_paths, log_dir=train_save_dir)
+            model_paths, model_configurations, log_dir=train_save_dir)
 
         # Evaluate our models on the test data
         test_results = evaluate(
             config, 
             test_feature_table, test_label_table,
-            model_paths, log_dir=test_save_dir)
+            model_paths, model_configurations, log_dir=test_save_dir)
+
+        # Save results to database
+        train_results_name = f'{prefix}_train_results'
+        test_results_name = f'{prefix}_test_results'
+        train_results.to_sql(train_results_name, conn, schema='results')
+        test_results.to_sql(test_results_name, conn, schema='results')
 
 
 

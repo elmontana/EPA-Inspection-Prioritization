@@ -37,7 +37,7 @@ create view cleaned.{prefix}_rcra_reporting_aggregated as (
     order by handler_id, waste_code
 );
 
-drop table if exists semantic.{prefix}_reporting;
+drop table if exists semantic.{prefix}_reporting cascade;
 create table semantic.{prefix}_reporting as (
     select *
     from crosstab(

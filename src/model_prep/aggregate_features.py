@@ -75,7 +75,8 @@ def main(conn, config, cohort_table, to_table,
         # if the row driver is inspections, impute features, aggregate to the facility level, and join to the cohort table
         elif table_type == 'event':
             feature_columns = []
-            date_col_name = agg_table['date_column_name']
+            event_date_col_name = agg_table['event_date_column_name']
+            knowledge_date_col_name = agg_table['knowledge_date_column_name']
             for agg_column in agg_table['aggregates']:
                 agg_column_name = agg_column['column_name']
                 for metric in agg_column['metrics']:
@@ -93,8 +94,9 @@ def main(conn, config, cohort_table, to_table,
                     f'entity_id, ' + \
                     ', '.join(feature_columns) + ' ' + \
                 f'from {input_table} ' + \
-                f"where {date_col_name} >= '{start_time}'::date " + \
-                f"and {date_col_name} <= '{end_time}'::date " + \
+                f"where {event_date_col_name} >= '{start_time}'::date " + \
+                f"and {event_date_col_name} <= '{end_time}'::date " + \
+                f"and {knowledge_date_col_name} <= '{end_time}'::date " + \
                 f'group by entity_id order by entity_id' + \
             f') as {input_table.split(".")[-1]} using (entity_id)'
 
