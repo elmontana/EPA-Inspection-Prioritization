@@ -73,7 +73,7 @@ feature_config:
 
     imputation:
       count: 'zero'
-      sum: 'mean_noflag'
+      sum: 'zero_noflag'
 
     aggregates:
       -
