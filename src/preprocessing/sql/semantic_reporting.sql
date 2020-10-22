@@ -1,6 +1,6 @@
 drop view if exists cleaned.{prefix}_rcra_reporting_aggregated;
 create view cleaned.{prefix}_rcra_reporting_aggregated as (
-    select handler_id, waste_code, sum(generation_tons) total_gen_tons from (
+    select handler_id, waste_code, report_cycle, sum(generation_tons) total_gen_tons from (
         select case
         when waste_code_group = 'D001' then 'd001'
         when waste_code_group = 'D002' then 'd002'
