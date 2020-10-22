@@ -63,6 +63,7 @@ feature_config:
     from_table: 'semantic.{prefix}_reporting'
     table_type: 'entity'
     imputation: 'zero_noflag'
+    event_date_column_name: 'event_date'
   -
     prefix: 'events'
     from_table: 'semantic.{prefix}_events'

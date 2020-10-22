@@ -1,18 +1,4 @@
 ---- 1. create table with facility information
-drop table if exists cleaned.{prefix}_rcra_facilities;
-create table cleaned.{prefix}_rcra_facilities as (
-    select
-    id_number,
-    lower(facility_name) as facility_name,
-    lower(street_address) as street_address,
-    lower(city_name) as city_name,
-    substr(zip_code, 1, 5) as zip_code,
-    case when trim(fed_waste_generator) = 'N' then 0 else fed_waste_generator::int end as fed_waste_generator
-    from rcra.facilities
-    where activity_location = 'NY' and active_site != '-----'
-);
-
----- 2. join latitude longitude data to hhandler
 drop table if exists cleaned.{prefix}_rcra_handler;
 create table cleaned.{prefix}_rcra_handler as (
     select
@@ -27,7 +13,6 @@ create table cleaned.{prefix}_rcra_handler as (
     from (
         select * from rcra.hhandler where activity_location = 'NY'
     ) as h
-    inner join cleaned.{prefix}_rcra_facilities as f on h.epa_handler_id = f.id_number
 );
 
 ---- 3. create filtered cmecomp3 table with facility data
@@ -58,16 +43,16 @@ create table cleaned.{prefix}_rcra_reporting as (
     r.report_cycle, r.source_code, r.form_code, r.management_method, r.federal_waste_flag, r.wastewater_characteristic_indicator,
     r.generation_tons, r.received_tons, r.waste_minimization_code, r.waste_code_group, lower(r.waste_description) as waste_description
     from rcra.br_reporting r
-    inner join cleaned.{prefix}_rcra_facilities f
-    on r.handler_id = f.id_number
+    inner join cleaned.{prefix}_rcra_handler f
+    on r.handler_id = f.epa_handler_id
 );
 
 ---- 5. create entity id table
 drop table if exists cleaned.{prefix}_entity_id;
 create table if not exists cleaned.{prefix}_entity_id as(
-    select distinct id_number
-    from cleaned.{prefix}_rcra_facilities
-    order by id_number
+    select distinct epa_handler_id as id_number
+    from cleaned.{prefix}_rcra_handler
+    order by epa_handler_id
 );
 alter table cleaned.{prefix}_entity_id add column id int generated always as identity primary key;
 

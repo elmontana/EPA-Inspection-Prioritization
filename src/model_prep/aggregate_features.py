@@ -61,8 +61,9 @@ def main(conn, config, cohort_table, to_table,
 
         #if the row driver is facilities, impute features and join to the cohort table
         if table_type == 'entity':
+            event_date_col_name = agg_table['event_date_column_name']
             table_columns = sql.get_table_columns(conn, input_table)
-            feature_names = [x for x in table_columns if x != 'entity_id']
+            feature_names = [x for x in table_columns if not x in ['entity_id', event_date_col_name]]
 
             for feature_name in feature_names:
                 imputation = agg_table['imputation']
@@ -70,7 +71,11 @@ def main(conn, config, cohort_table, to_table,
                 imputes.append((feature_name,) + impute_config)
 
             join_query += ' '
-            join_query += f'left join {input_table} using (entity_id)'
+            join_query += f'left join (' + \
+                              f'select entity_id, {", ".join(feature_names)} from {input_table} ' + \
+                              f"where {event_date_col_name} >= '{start_time}'::date " + \
+                              f"and {event_date_col_name} <= '{end_time}'::date" + \
+                          f') in_table using (entity_id)'
 
         # if the row driver is inspections, impute features, aggregate to the facility level, and join to the cohort table
         elif table_type == 'event':

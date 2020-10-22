@@ -98,7 +98,7 @@ def main(config, skip_preprocessing, log_dir):
     for train_dates, test_dates in zip(train_dates_list, test_dates_list):
         split_time_abbr = date_utils.date_to_string(train_dates['feature_start_time'])
         split_time_abbr = split_time_abbr.replace('-', '')[2:]
-        split_name = f'train_{split_time_abbr}'
+        split_name = f'{split_time_abbr}'
         prefix = f'{username}_{exp_version}_{exp_name}_{exp_time}_{split_name}'
         experiment_table_prefix = f'experiments.{prefix}'
         train_save_dir = os.path.join(

@@ -1,6 +1,6 @@
 drop view if exists cleaned.{prefix}_rcra_reporting_aggregated;
 create view cleaned.{prefix}_rcra_reporting_aggregated as (
-    select handler_id, waste_code, sum(generation_tons) total_gen_tons from (
+    select handler_id, report_cycle, waste_code, sum(generation_tons) total_gen_tons from (
         select case
         when waste_code_group = 'D001' then 'd001'
         when waste_code_group = 'D002' then 'd002'
@@ -33,25 +33,26 @@ create view cleaned.{prefix}_rcra_reporting_aggregated as (
         when substr(waste_code_group, 1, 1) = 'U' then 'other_u'
         else 'others'
         end waste_code, * from cleaned.{prefix}_rcra_reporting) r
-    group by handler_id, waste_code
-    order by handler_id, waste_code
+    group by handler_id, report_cycle, waste_code
+    order by handler_id, report_cycle, waste_code
 );
 
 drop table if exists semantic.{prefix}_reporting cascade;
 create table semantic.{prefix}_reporting as (
-    select *
+    select res.entity_year[1] entity_id, make_date(res.entity_year[2], 12, 31) event_date, res.*
     from crosstab(
-        'select e.id as entity_id, k.waste_code, k.total_gen_tons from (
+        'select array[e.id, k.report_cycle::integer] as entity_year, k.waste_code, k.total_gen_tons from (
             select cr.*, case when a.total_gen_tons > 0 then a.total_gen_tons else 0 end as total_gen_tons from (
                 select * from (select distinct handler_id from cleaned.{prefix}_rcra_reporting_aggregated) i cross join (
-                    select distinct waste_code from cleaned.{prefix}_rcra_reporting_aggregated) c
-                order by i.handler_id, c.waste_code
+                    select * from (select distinct report_cycle from cleaned.{prefix}_rcra_reporting_aggregated) rc cross join (
+                        (select distinct waste_code from cleaned.{prefix}_rcra_reporting_aggregated)) wc) c
+                order by i.handler_id, c.report_cycle, c.waste_code
             ) cr
             left join cleaned.{prefix}_rcra_reporting_aggregated a
-            on cr.handler_id = a.handler_id and cr.waste_code = a.waste_code) k
+            on cr.handler_id = a.handler_id and cr.report_cycle = a.report_cycle and cr.waste_code = a.waste_code) k
         inner join cleaned.{prefix}_entity_id e on k.handler_id = e.id_number'
-        ) as ct (
-        entity_id int,
+        ) as res (
+        entity_year integer[],
         d001 float, d002 float, d008 float, tcor_icr float, f1_5 float,
         tcmt float, d011 float, d039 float, f003 float, d009 float,
         icr float, d007 float, f002 float, labp float, d016 float,
@@ -61,3 +62,4 @@ create table semantic.{prefix}_reporting as (
         others float
     )
 );
+alter table semantic.{prefix}_reporting drop column entity_year;
