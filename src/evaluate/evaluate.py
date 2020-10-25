@@ -94,7 +94,7 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
     model_configs = pd.DataFrame(model_configs)
     model_filenames = pd.DataFrame({ 'model_path': model_paths })
     info = pd.DataFrame({ 'num_labeled_items': [num_labeled_items] * len(model_paths) })
-    results = pd.DataFrame(np.array(results), columns=columns)
+    results = pd.DataFrame(np.array(results).round(4), columns=columns)
     results = pd.concat([model_configs, model_filenames, info, results], axis=1)
 
     # Save results to csv file
