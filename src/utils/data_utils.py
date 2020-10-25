@@ -17,7 +17,7 @@ def get_data(feature_table, label_table):
 
     # Query data from sql tables
     conn = get_connection()
-    sql_query = f'select f.*, l.label from {feature_table} f inner join {label_table} l on f.entity_id = l.entity_id;'
+    sql_query = f'select f.*, l.label from {feature_table} f left join {label_table} l on f.entity_id = l.entity_id;'
     df = pd.read_sql(sql_query, con=conn)
 
     # Process data

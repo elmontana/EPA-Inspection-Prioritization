@@ -1,3 +1,4 @@
+import numpy as np
 import importlib
 import itertools
 import os
@@ -64,6 +65,9 @@ def train(config, feature_table, label_table, save_dir='./saved_models/'):
 
     # Load data
     X, y = get_data(feature_table, label_table)
+    label_exist_indices = np.logical_or(y == 0, y == 1)
+    X = X[label_exist_indices]
+    y = y[label_exist_indices]
 
     # Train models
     model_configurations = get_model_configurations(config)

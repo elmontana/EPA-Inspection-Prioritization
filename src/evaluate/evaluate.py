@@ -81,7 +81,10 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
                 y_pred, probs = get_predictions(model, X, k=k)
             else:
                 y_pred, probs = get_predictions(model, X, n=k)
-            model_results.extend([metric(y, y_pred) for metric in metrics])
+            label_exist_indices = np.logical_or(y == 0, y == 1)
+            y_pred_filtered = y_pred[label_exist_indices]
+            y_filtered = y[label_exist_indices]
+            model_results.extend([metric(y_filtered, y_pred_filtered) for metric in metrics])
         results.append(model_results)
 
     # Convert results to dataframe table
