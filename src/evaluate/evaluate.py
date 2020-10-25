@@ -62,6 +62,7 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
 
     # Get feature and label arrays
     X, y = get_data(feature_table, label_table)
+    num_labeled_items = int(np.sum(np.logical_or(y == 0, y == 1)))
 
     # Evaluate models
     metrics_str = [s.rsplit('.', 1) for s in config['eval_config']['metrics']]
@@ -92,8 +93,9 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
     columns = [item for sublist in columns for item in sublist]
     model_configs = pd.DataFrame(model_configs)
     model_filenames = pd.DataFrame({ 'model_path': model_paths })
+    info = pd.DataFrame({ 'num_labeled_items': [num_labeled_items] * len(model_paths) })
     results = pd.DataFrame(np.array(results), columns=columns)
-    results = pd.concat([model_configs, model_filenames, results], axis=1)
+    results = pd.concat([model_configs, model_filenames, info, results], axis=1)
 
     # Save results to csv file
     experiment_name = config['experiment_name']
