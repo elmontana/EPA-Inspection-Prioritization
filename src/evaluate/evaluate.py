@@ -27,7 +27,7 @@ def get_predictions(model, X, k=None, n=None):
         return model.predict(X) > 0.5
     else:
         # Get the top-k highest predicted probabilities from the model
-        probs = model.predict_proba(X)
+        probs = model.predict_proba(X)[:, 1]
         if k is not None:
             n = int(float(len(probs)) * k)
         top_n = probs.argsort()[-n:][::-1]
