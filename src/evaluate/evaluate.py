@@ -6,6 +6,7 @@ import importlib
 
 from pathlib import Path
 from ..utils.data_utils import get_data
+from ..utils.plot_utils import plot_metric_at_k
 
 
 
@@ -112,5 +113,19 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
     experiment_name = config['experiment_name']
     results_path = Path(log_dir) / f'{experiment_name}_results.csv'
     results.to_csv(results_path)
+
+    # Plot precision@k curve
+    if len([s for s in columns if s.startswith('precision_score_at_')]):
+        save_path = Path(log_dir) / f'{experiment_name}_precision_at_k.pdf'
+        plot_metric_at_k(results, prefix='precision_score_at_',
+                         x_value_type='float',
+                         save_path=save_path)
+
+    # Plot recall@k curve
+    if len([s for s in columns if s.startswith('recall_score_at_')]):
+        save_path = Path(log_dir) / f'{experiment_name}_recall_at_k.pdf'
+        plot_metric_at_k(results, prefix='recall_score_at_',
+                         x_value_type='float',
+                         save_path=save_path)
 
     return results
