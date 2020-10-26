@@ -9,25 +9,34 @@ from ..utils.data_utils import get_data
 
 
 
-def get_predictions(model, X, k=None, n=None):
+def get_predictions(model, X, k=None, n=None, columns=None):
     """
-    Get predictions from a model. 
-    
+    Get predictions from a model.
+
     Arguments:
         - model: the trained model
         - X (np.ndarray): an array of features
         - n (int): the total number of positive labels we want to predict
         - k (float): the total proportion of positive labels we want to predict
-    
+        - columns (list): list of column names of the features
+
     Returns:
         - y_pred: an array of label predictions
     """
     assert not (k is not None and n is not None), 'k and n cannot be both specified.'
+    is_sklearn_mode = model.__module__.startswith('sklearn')
     if k is None and n is None:
-        return model.predict(X) > 0.5
+        if is_sklearn_mode:
+            preds = model.predict(X)
+        else:
+            preds = model.predict(X, columns=columns)
+        return preds > 0.5
     else:
         # Get the top-k highest predicted probabilities from the model
-        probs = model.predict_proba(X)[:, 1]
+        if is_sklearn_mode:
+            probs = model.predict_proba(X)[:, 1]
+        else:
+            probs = model.predict_proba(X, columns=columns)[:, 1]
         if k is not None:
             n = int(float(len(probs)) * k)
         top_n = probs.argsort()[-n:][::-1]
@@ -50,9 +59,9 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
         - model_paths: list of paths to the models being tested
         - model_configs: list of dictionaries containing model configs
         - log_dir: directory for saving evaluation results
-    
+
     Returns:
-        - results: a DataFrame containing the results of the 
+        - results: a DataFrame containing the results of the
             evaluation metrics for each model
     """
 
@@ -61,7 +70,7 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
         os.makedirs(log_dir)
 
     # Get feature and label arrays
-    X, y = get_data(feature_table, label_table)
+    X, y, feature_columns = get_data(feature_table, label_table)
     num_labeled_items = int(np.sum(np.logical_or(y == 0, y == 1)))
 
     # Evaluate models
@@ -79,9 +88,11 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
         model_results = []
         for k in k_values:
             if type(k) is float:
-                y_pred, probs = get_predictions(model, X, k=k)
+                y_pred, probs = get_predictions(model, X, k=k,
+                                                columns=feature_columns)
             else:
-                y_pred, probs = get_predictions(model, X, n=k)
+                y_pred, probs = get_predictions(model, X, n=k,
+                                                columns=feature_columns)
             label_exist_indices = np.logical_or(y == 0, y == 1)
             y_pred_filtered = y_pred[label_exist_indices]
             y_filtered = y[label_exist_indices]

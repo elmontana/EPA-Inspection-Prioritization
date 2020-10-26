@@ -55,7 +55,7 @@ label_config:
     where event_date >= '{start_date}' and event_date <= '{end_date}'
     and knowledge_date <= '{end_date}'
     group by entity_id
-    order by entity_id 
+    order by entity_id
 
 feature_config:
   -
@@ -92,8 +92,10 @@ model_config:
     max_features: [~, 'sqrt']
     min_samples_split: [2]
     criterion: ['gini']
-  'sklearn.linear_model.LogisticRegression': 
+  'sklearn.linear_model.LogisticRegression':
     max_iter: [1000]
+  'src.models.common_sense_baseline.CommonSenseBaseline':
+    column: ['events_sum_penalty_amount', 'events_count_found_violation']
 
 eval_config:
   metrics:

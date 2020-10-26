@@ -64,7 +64,7 @@ def train(config, feature_table, label_table, save_dir='./saved_models/'):
         os.makedirs(save_dir)
 
     # Load data
-    X, y = get_data(feature_table, label_table)
+    X, y, feature_columns = get_data(feature_table, label_table)
     label_exist_indices = np.logical_or(y == 0, y == 1)
     X = X[label_exist_indices]
     y = y[label_exist_indices]
@@ -76,7 +76,10 @@ def train(config, feature_table, label_table, save_dir='./saved_models/'):
     for model_num, (class_name, kwargs) in enumerate(model_configurations):
         # Create & fit model
         model = create_model(class_name, kwargs)
-        model.fit(X, y)
+        if class_name.startswith('src.models'):
+            model.fit(X, y, columns=feature_columns)
+        else:
+            model.fit(X, y)
 
         # Save model
         experiment_name = config['experiment_name']

@@ -22,5 +22,5 @@ def get_data(feature_table, label_table):
 
     # Process data
     data = df.to_numpy(copy=True)
-    X, y = data[:, :-1], data[:, -1].astype(int)
-    return X, y
+    X, y = data[:, 1:-1], data[:, -1].astype(int)
+    return X, y, list(df.columns)[1:-1]
