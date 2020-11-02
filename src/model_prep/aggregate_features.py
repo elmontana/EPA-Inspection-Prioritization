@@ -52,6 +52,17 @@ def main(conn, config, cohort_table, to_table,
     """
     join_query = f'select * from {cohort_table}'
     imputes = []
+
+    # create a function to generate self-incrementing aliases
+    t = 0
+    def alias_counter():
+        val = [0]
+        def inc():
+            val[0] += 1
+            return f'alias_{val[0]}'
+        return inc
+    get_alias = alias_counter()
+
     # For each table features need to be aggregated from, impute missing features, and create sql string that aggregates features by facility, and left joins them to the cohort table
     for agg_table in config:
         output_prefix = agg_table['prefix']
@@ -61,21 +72,36 @@ def main(conn, config, cohort_table, to_table,
 
         #if the row driver is facilities, impute features and join to the cohort table
         if table_type == 'entity':
-            event_date_col_name = agg_table['event_date_column_name']
+            column_avoid_list = ['entity_id']
+            if 'event_date_column_name' in agg_table:
+                event_date_col_name = agg_table['event_date_column_name']
+                column_avoid_list += [event_date_col_name]
             table_columns = sql.get_table_columns(conn, input_table)
-            feature_names = [x for x in table_columns if not x in ['entity_id', event_date_col_name]]
+            feature_names = [x for x in table_columns if not x in column_avoid_list]
 
             for feature_name in feature_names:
                 imputation = agg_table['imputation']
                 impute_config = get_impute_str(feature_name, imputation)
                 imputes.append((feature_name,) + impute_config)
 
+            if 'event_date_column_name' in agg_table:
+                # filter event date and pick the latest record for each entity
+                get_columns_query = f'select entity_id, {event_date_col_name}, ' + \
+                                        f'{", ".join(feature_names)} from {input_table} ' + \
+                                    'right join (' + \
+                                        f'select entity_id, max({event_date_col_name}) {event_date_col_name} ' + \
+                                        f'from {input_table} ' + \
+                                        f"where {event_date_col_name} >= '{start_time}'::date " + \
+                                        f"and {event_date_col_name} <= '{end_time}'::date " + \
+                                        'group by entity_id' + \
+                                    f') as {get_alias()} using (entity_id, {event_date_col_name})'
+                get_columns_query = f'select entity_id, {", ".join(feature_names)} ' + \
+                                    f'from ({get_columns_query}) as {get_alias()}'
+            else:
+                get_columns_query = f'select entity_id, {", ".join(feature_names)} from {input_table}'
+
             join_query += ' '
-            join_query += f'left join (' + \
-                              f'select entity_id, {", ".join(feature_names)} from {input_table} ' + \
-                              f"where {event_date_col_name} >= '{start_time}'::date " + \
-                              f"and {event_date_col_name} <= '{end_time}'::date" + \
-                          f') in_table using (entity_id)'
+            join_query += f'left join ({get_columns_query}) in_table using (entity_id)'
 
         # if the row driver is inspections, impute features, aggregate to the facility level, and join to the cohort table
         elif table_type == 'event':

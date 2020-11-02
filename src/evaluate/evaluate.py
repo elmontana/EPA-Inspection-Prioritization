@@ -6,7 +6,7 @@ import importlib
 
 from pathlib import Path
 from ..utils.data_utils import get_data
-from ..utils.plot_utils import plot_metric_at_k
+from ..utils.plot_utils import plot_metric_at_k, plot_pr_at_k
 
 
 
@@ -49,6 +49,7 @@ def get_predictions(model, X, k=None, n=None, columns=None):
 
 
 def evaluate(config, feature_table, label_table, model_paths, model_configs,
+             discard_columns=[],
              log_dir='./results/'):
     """
     Test models on validation data and save the results to a csv file.
@@ -59,6 +60,7 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
         - label_table: name of table containing label features
         - model_paths: list of paths to the models being tested
         - model_configs: list of dictionaries containing model configs
+        - discard_columns: names of columns to discard before building matrices
         - log_dir: directory for saving evaluation results
 
     Returns:
@@ -71,7 +73,7 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
         os.makedirs(log_dir)
 
     # Get feature and label arrays
-    X, y, feature_columns = get_data(feature_table, label_table)
+    X, y, feature_columns = get_data(feature_table, label_table, discard_columns)
     num_labeled_items = int(np.sum(np.logical_or(y == 0, y == 1)))
 
     # Evaluate models
@@ -114,18 +116,33 @@ def evaluate(config, feature_table, label_table, model_paths, model_configs,
     results_path = Path(log_dir) / f'{experiment_name}_results.csv'
     results.to_csv(results_path)
 
+    # Check if model results include precision and recall
+    metric_includes_precision = False
+    metric_includes_recall = False
+    for s in columns:
+        if s.startswith('precision_score_at_'):
+            metric_includes_precision = True
+        if s.startswith('recall_score_at_'):
+            metric_includes_recall = True
+
     # Plot precision@k curve
-    if len([s for s in columns if s.startswith('precision_score_at_')]):
+    if metric_includes_precision:
         save_path = Path(log_dir) / f'{experiment_name}_precision_at_k.pdf'
         plot_metric_at_k(results, prefix='precision_score_at_',
                          x_value_type='float',
                          save_path=save_path)
 
     # Plot recall@k curve
-    if len([s for s in columns if s.startswith('recall_score_at_')]):
+    if metric_includes_recall:
         save_path = Path(log_dir) / f'{experiment_name}_recall_at_k.pdf'
         plot_metric_at_k(results, prefix='recall_score_at_',
                          x_value_type='float',
                          save_path=save_path)
+
+    # Plot pr@k for all models
+    if metric_includes_precision and metric_includes_recall:
+        plot_pr_at_k(results, 'float', 'precision_score_at_', 'recall_score_at_',
+                     Path(log_dir) / experiment_name)
+
 
     return results

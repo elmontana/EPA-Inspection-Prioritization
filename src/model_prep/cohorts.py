@@ -9,14 +9,14 @@ from ..utils.date_utils import date_to_string
 def generate_cohort_table(conn, cohort_config, as_of_date, in_prefix, out_prefix):
     """
     Creates a table of facility data with information from before the passed in date.
-    
+
     Arguments:
         - conn: a connection to the database
         - cohort_config: dictionary with cohort configuration info
         - as_of_date: str in format 'YYYY-MM-DD' indicating most recent date in the new table
         - in_prefix: str providing prefix for table from which to select data
         - out_prefix: str providing prefix for the table created
-        
+
     Returns:
         - cohort_table_name: str name of the table created
     """
@@ -31,20 +31,24 @@ def generate_cohort_table(conn, cohort_config, as_of_date, in_prefix, out_prefix
 
 
 def prepare_cohort(
-    config, train_dates, test_dates, 
-    preprocessing_prefix, experiment_table_prefix):
+    config, train_dates, test_dates,
+    preprocessing_prefix, experiment_table_prefix,
+    include_train=True,
+    include_test=True):
     """
-    Generate a cohort, then create tables for features & labels, 
+    Generate a cohort, then create tables for features & labels,
     within the given train and test date ranges.
 
     Arguments:
         - config: configuration dictionary for this experiment (loaded from yaml)
-        - train_dates: a dictionary for training date ranges, with values for 
+        - train_dates: a dictionary for training date ranges, with values for
             `feature_start_time`, `feature_end_time`, `label_start_time` and `label_end_time`
-        - test_dates: a dictionary for testing date ranges, with values for 
+        - test_dates: a dictionary for testing date ranges, with values for
             `feature_start_time`, `feature_end_time`, `label_start_time` and `label_end_time`
         - preprocessing_prefix: string indicating prefix that was used in preprocessing
         - experiment_table_prefix: prefix for tables created in this experiment
+        - include_train: whether to include training tables
+        - include_test: whether to include testing tables
 
     Returns:
         - train_feature_table_name: name of table containing train features
@@ -66,38 +70,62 @@ def prepare_cohort(
         experiment_table_prefix)
 
     # Aggregate features for train & test data into new tables
-    train_feature_table_name = f'{experiment_table_prefix}_train_features'
-    aggregate_features(
-        conn, config['feature_config'], 
-        cohort_table_name,
-        train_feature_table_name,
-        date_to_string(train_dates['feature_start_time']),
-        date_to_string(train_dates['feature_end_time']),
-        preprocessing_prefix)
-    test_feature_table_name = f'{experiment_table_prefix}_test_features'
-    aggregate_features(
-        conn, config['feature_config'], 
-        cohort_table_name,
-        test_feature_table_name,
-        date_to_string(test_dates['feature_start_time']),
-        date_to_string(test_dates['feature_end_time']),
-        preprocessing_prefix)
+    if include_train:
+        train_feature_table_name = f'{experiment_table_prefix}_train_features'
+        aggregate_features(
+            conn, config['feature_config'],
+            cohort_table_name,
+            train_feature_table_name,
+            date_to_string(train_dates['feature_start_time']),
+            date_to_string(train_dates['feature_end_time']),
+            preprocessing_prefix)
+    else:
+        train_feature_table_name = None
+    if include_test:
+        test_feature_table_name = f'{experiment_table_prefix}_test_features'
+        aggregate_features(
+            conn, config['feature_config'],
+            cohort_table_name,
+            test_feature_table_name,
+            date_to_string(test_dates['feature_start_time']),
+            date_to_string(test_dates['feature_end_time']),
+            preprocessing_prefix)
+    else:
+        test_feature_table_name = None
 
     # Create new tables containing labels for each train & test data instance
-    train_label_table_name = f'{experiment_table_prefix}_train_labels'
-    select_labels(
-        conn, config['label_config'],
-        train_label_table_name,
-        date_to_string(train_dates['label_start_time']),
-        date_to_string(train_dates['label_end_time']),
-        preprocessing_prefix)
-    test_label_table_name = f'{experiment_table_prefix}_test_labels'
-    select_labels(
-        conn, config['label_config'], 
-        test_label_table_name,
-        date_to_string(test_dates['label_start_time']),
-        date_to_string(test_dates['label_end_time']),
-        preprocessing_prefix)
+    if include_train:
+        train_label_table_name = f'{experiment_table_prefix}_train_labels'
+        select_labels(
+            conn, config['label_config'],
+            train_label_table_name,
+            date_to_string(train_dates['label_start_time']),
+            date_to_string(train_dates['label_end_time']),
+            preprocessing_prefix)
+    else:
+        train_label_table_name = None
+    if include_test:
+        test_label_table_name = f'{experiment_table_prefix}_test_labels'
+        select_labels(
+            conn, config['label_config'],
+            test_label_table_name,
+            date_to_string(test_dates['label_start_time']),
+            date_to_string(test_dates['label_end_time']),
+            preprocessing_prefix)
+    else:
+        test_label_table_name = None
 
-    return (train_feature_table_name, train_label_table_name, 
+    return (train_feature_table_name, train_label_table_name,
         test_feature_table_name, test_label_table_name)
+
+
+def merge_tables(table_names, output_table_name):
+    conn = sql.get_connection()
+    select_queries = []
+    for i, table_name in enumerate(table_names):
+        select_query = f"select {i} as split, s{i}.* from {table_name} s{i}"
+        select_queries.append(select_query)
+    query = f'create table {output_table_name} as ({" union all ".join(select_queries)});'
+    sql.run_sql_from_string(conn, query)
+    for table_name in table_names:
+        sql.run_sql_from_string(conn, f'drop table {table_name}')

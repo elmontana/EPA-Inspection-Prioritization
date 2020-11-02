@@ -48,7 +48,7 @@ def get_model_configurations(config):
     return model_configurations
 
 
-def train(config, feature_table, label_table, save_dir='./saved_models/'):
+def train(config, feature_table, label_table, discard_columns=[], save_dir='./saved_models/'):
     """
     Train models as specified by a config file.
 
@@ -56,6 +56,7 @@ def train(config, feature_table, label_table, save_dir='./saved_models/'):
         - config: configuration dictionary for this experiment  (loaded from yaml)
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
+        - discard_columns: names of columns to discard before building matrices
         - save_dir: directory for saving models
     """
 
@@ -64,7 +65,7 @@ def train(config, feature_table, label_table, save_dir='./saved_models/'):
         os.makedirs(save_dir)
 
     # Load data
-    X, y, feature_columns = get_data(feature_table, label_table)
+    X, y, feature_columns = get_data(feature_table, label_table, discard_columns)
     label_exist_indices = np.logical_or(y == 0, y == 1)
     X = X[label_exist_indices]
     y = y[label_exist_indices]

@@ -7,6 +7,8 @@ temporal_config:
   feature_duration: '10 years'
   label_duration: '1 year'
 
+  feature_aod_interval: '1 year'
+
   # start time for getting features
   # we assume that labels come immediately after features
   # this means that the training data comes in (fst, fst + fd)
