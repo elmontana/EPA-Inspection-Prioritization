@@ -96,6 +96,20 @@ model_config:
     max_iter: [1000]
   'src.models.common_sense_baseline.CommonSenseBaseline':
     column: ['events_sum_penalty_amount', 'events_count_found_violation']
+  'sklearn.ensemble.RandomForestClassifier':
+    n_estimators: [50, 100]
+    max_depth: [None, 1, 5]
+    max_features: [~, 'sqrt', 'auto']
+    min_samples_split: [2]
+  'sklearn.ensemble.GradientBoostingClassifier':
+    max_depth: [1, 5]
+    max_features: [~, 'sqrt']
+    min_samples_split: [2]
+    min_samples_leaf: [1]
+  'sklearn.ensemble.AdaBoostClassifier':
+    base_estimator: [None]
+    n_estimators: [25, 50]
+    learning_rate: [1.0, 0.1]
 
 eval_config:
   metrics:
