@@ -85,6 +85,11 @@ feature_config:
         metrics:
           - 'count'
           - 'sum'
+          
+      -
+        column_name: 'event_date'
+        metrics:
+          - 'datediff'
 
 model_config:
   'sklearn.tree.DecisionTreeClassifier':
