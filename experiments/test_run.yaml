@@ -76,6 +76,7 @@ feature_config:
     imputation:
       count: 'zero'
       sum: 'zero_noflag'
+      count: 'inf'
 
     aggregates:
       -
@@ -87,7 +88,6 @@ feature_config:
         metrics:
           - 'count'
           - 'sum'
-          
       -
         column_name: 'event_date'
         metrics:
