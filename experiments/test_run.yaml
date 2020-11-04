@@ -115,7 +115,7 @@ model_config:
     min_samples_leaf: [1]
   'sklearn.ensemble.AdaBoostClassifier':
     base_estimator: [null]
-    n_estimators: [25, 50]
+    n_estimators: [25]
     learning_rate: [1.0]
 
 eval_config:
