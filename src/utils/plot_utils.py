@@ -55,4 +55,4 @@ def plot_pr_at_k(results, x_value_type, p_prefix, r_prefix, save_prefix):
         xlabel = 'k' if x_value_type == 'float' else 'n'
         plt.legend(['Precision', 'Recall'])
         plt.tight_layout()
-        plt.savefig(os.path.join(save_prefix, f'_pr_at_k_model_{index}.pdf'))
+        plt.savefig(f'{save_prefix}_pr_at_k_model_{index}.pdf')
