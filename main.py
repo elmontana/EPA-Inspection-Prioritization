@@ -103,7 +103,7 @@ def main(config, skip_preprocessing, log_dir):
 
     # Training and evaluation
     for train_dates, test_dates in zip(train_dates_list, test_dates_list):
-        split_time_abbr = date_utils.date_to_string(train_dates[-1]['label_start_time'])
+        split_time_abbr = date_utils.date_to_string(test_dates['label_start_time'])
         split_time_abbr = split_time_abbr.replace('-', '')[2:]
         split_name = f'{split_time_abbr}'
         prefix = f'{username}_{exp_version}_{exp_name}_{exp_time}_{split_name}'

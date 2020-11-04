@@ -47,12 +47,25 @@ def plot_pr_at_k(results, x_value_type, p_prefix, r_prefix, save_prefix):
     r_xs, r_x = get_x_axis_values(results.columns, r_prefix, x_value_type)
 
     for index, row in results.iterrows():
-        plt.clf()
+        xlabel = 'k' if x_value_type == 'float' else 'n'
         p_values = [float(row[p_prefix + s]) for s in p_xs]
         r_values = [float(row[r_prefix + s]) for s in r_xs]
-        plt.plot(p_x, p_values)
-        plt.plot(r_x, r_values)
-        xlabel = 'k' if x_value_type == 'float' else 'n'
-        plt.legend(['Precision', 'Recall'])
-        plt.tight_layout()
-        plt.savefig(f'{save_prefix}_pr_at_k_model_{index}.pdf')
+
+        fig, ax1 = plt.subplots()
+
+        color = 'tab:red'
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel('Precision', color=color)
+        ax1.plot(p_x, p_values, color=color)
+        ax1.tick_params(axis='y', labelcolor=color)
+
+        ax2 = ax1.twinx()
+        color = 'tab:blue'
+        ax2.set_ylabel('Recall', color=color)
+        ax2.plot(r_x, r_values, color=color)
+        ax2.tick_params(axis='y', labelcolor=color)
+        ax2.set_ylim(0.0, 1.0)
+
+        fig.tight_layout()
+        plt.savefig(str(save_prefix) + f'_pr_at_k_model_{index}.jpg', dpi=300)
+        plt.close(fig)
