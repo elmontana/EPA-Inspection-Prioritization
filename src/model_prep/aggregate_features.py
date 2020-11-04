@@ -22,7 +22,7 @@ def get_impute_str(column_name, imputation):
     #determine type of imputation and create appropriate sql code to do so
     if imputation.startswith('zero'):
         impute_sql = '0'
-    elif imputation.startswith('inf'):
+    elif imputation.startswith('datediff'):
         impute_sql = '100000000'
     elif imputation.startswith('mean') or imputation.startswith('avg'):
         impute_sql = f'avg({column_name}) over ()'
@@ -117,10 +117,17 @@ def main(conn, config, cohort_table, to_table,
                     if metric == "datediff":
                         feature_name = f'{output_prefix}_days_since_{agg_column_name}'
                         feature_str = f"min({metric}(days, {agg_column_name}, '{end_time}'::date)) as {feature_name}"
+                        
+                        feature_columns.append(feature_str)
+
+                        imputation = agg_table['imputation'][metric]
+                        impute_config = get_impute_str(feature_name, imputation)
+                        imputes.append((feature_name,) + impute_config)
 
                     else:
                         feature_name = f'{output_prefix}_{metric}_{agg_column_name}'
                         feature_str = f'{metric}({agg_column_name}) as {feature_name}'
+                    
                         feature_columns.append(feature_str)
 
                         imputation = agg_table['imputation'][metric]
