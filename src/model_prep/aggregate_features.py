@@ -116,7 +116,7 @@ def main(conn, config, cohort_table, to_table,
                     if metric == "datediff":
                         feature_name = f'{output_prefix}_days_since_{agg_column_name}'
                         #feature_str = f"min({metric}(day, {agg_column_name}, '{end_time}'::date)) as {feature_name}"
-                        feature_str = f"MIN( EXTRACT( DAY FROM '{end_time}'::date - {agg_column_name} )) as {feature_name}"
+                        feature_str = f"MIN('{end_time}'::date - {agg_column_name}) as {feature_name}"
 
                         feature_columns.append(feature_str)
 
