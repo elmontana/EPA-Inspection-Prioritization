@@ -76,7 +76,7 @@ feature_config:
     imputation:
       count: 'zero'
       sum: 'zero_noflag'
-      count: 'datediff'
+      datediff: 'inf'
 
     aggregates:
       -

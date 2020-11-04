@@ -22,7 +22,7 @@ def get_impute_str(column_name, imputation):
     #determine type of imputation and create appropriate sql code to do so
     if imputation.startswith('zero'):
         impute_sql = '0'
-    elif imputation.startswith('datediff'):
+    elif imputation.startswith('inf'):
         impute_sql = '100000000'
     elif imputation.startswith('mean') or imputation.startswith('avg'):
         impute_sql = f'avg({column_name}) over ()'
