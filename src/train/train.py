@@ -65,10 +65,11 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
         os.makedirs(save_dir)
 
     # Load data
-    X, y, feature_columns = get_data(feature_table, label_table, discard_columns)
-    label_exist_indices = np.logical_or(y == 0, y == 1)
-    X = X[label_exist_indices]
-    y = y[label_exist_indices]
+    X, y, _ = get_data(feature_table, label_table, discard_columns=discard_columns)
+
+    # Filter out rows where a label does not exist
+    labeled_indices = np.logical_or(y == 0, y == 1)
+    X, y = X[labeled_indices], y[labeled_indices]
 
     # Train models
     model_configurations = get_model_configurations(config)
@@ -77,10 +78,7 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
     for model_num, (class_name, kwargs) in enumerate(model_configurations):
         # Create & fit model
         model = create_model(class_name, kwargs)
-        if class_name.startswith('src.models'):
-            model.fit(X, y, columns=feature_columns)
-        else:
-            model.fit(X, y)
+        model.fit(X, y)
 
         # Save model
         experiment_name = config['experiment_name']
@@ -105,4 +103,5 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
         summary_dict = { 'model_name': model_config[0] }
         summary_dict.update(model_config[1])
         model_summary.append(summary_dict)
+
     return model_summary
