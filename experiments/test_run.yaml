@@ -116,7 +116,7 @@ model_config:
   'sklearn.ensemble.AdaBoostClassifier':
     base_estimator: [null]
     n_estimators: [25, 50]
-    learning_rate: [1.0, 0.1]
+    learning_rate: [1.0]
 
 eval_config:
   metrics:
