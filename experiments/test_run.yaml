@@ -102,7 +102,7 @@ model_config:
   'sklearn.linear_model.LogisticRegression':
     max_iter: [1000]
   'src.models.common_sense_baseline.CommonSenseBaseline':
-    column: ['events_sum_penalty_amount', 'events_count_found_violation']
+    column: ['events_sum_penalty_amount', 'events_count_found_violation', 'events_days_since_event_date']
   'sklearn.ensemble.RandomForestClassifier':
     n_estimators: [50, 100]
     max_depth: [null, 1, 5]
