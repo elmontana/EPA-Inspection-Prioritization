@@ -2,8 +2,8 @@ import os
 import glob
 import sqlalchemy
 
+from .load_acs import load_acs_data
 from ..utils.sql_utils import run_sql_from_file
-from load_acs import load_acs_data
 
 
 
