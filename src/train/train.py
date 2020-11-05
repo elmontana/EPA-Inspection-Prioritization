@@ -3,6 +3,7 @@ import importlib
 import itertools
 import os
 import pickle
+import tqdm
 
 from pathlib import Path
 from ..utils.data_utils import get_data
@@ -75,7 +76,9 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
     model_configurations = get_model_configurations(config)
     model_descriptions = []
 
-    for model_num, (class_name, kwargs) in enumerate(model_configurations):
+    print('Training models ...')
+    training_loop = tqdm.tqdm(model_configurations)
+    for model_num, (class_name, kwargs) in enumerate(training_loop):
         # Create & fit model
         model = create_model(class_name, kwargs)
         model.fit(X, y)
@@ -89,7 +92,7 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
         # Create model description
         description = f'Model #{model_num}\nPath: {model_path}\nClass: {class_name}\nKeyword Args: {kwargs}'
         model_descriptions.append(description)
-        print(description, '\n')
+        training_loop.set_description(f'Model #{model_num}: {class_name}')
 
     # Log the model descriptions
     experiment_name = config['experiment_name']
@@ -100,7 +103,7 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
 
     model_summary = []
     for model_config in model_configurations:
-        summary_dict = { 'model_name': model_config[0] }
+        summary_dict = {'model_name': model_config[0]}
         summary_dict.update(model_config[1])
         model_summary.append(summary_dict)
 

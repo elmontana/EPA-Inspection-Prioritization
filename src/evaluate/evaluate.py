@@ -6,12 +6,13 @@ import importlib
 
 from pathlib import Path
 from ..models.wrappers import SKLearnWrapper
-from ..utils.data_utils import get_data
+from ..utils.data_utils import get_data, get_data_frames
 from ..utils.plot_utils import plot_metric_at_k, plot_pr_at_k
+from ..utils.sql_utils import get_connection
 
 
 
-def get_predictions(model, X, k=None, columns=None):
+def get_predictions(model, X, k=None, columns=None, save_db_table=None):
     """
     Get predictions from a model.
 
@@ -21,6 +22,8 @@ def get_predictions(model, X, k=None, columns=None):
         - k (float or int): the total number of positive labels we want to predict
             If provided as a float within (0.0, 1.0), k is the total proportion of positive labels
         - columns (list): list of column names of the features
+        - entity_ids: list of entity ids
+        - save_db_table (str): name of table in which to save predictions
 
     Returns:
         - y_pred: an array of label predictions
@@ -32,7 +35,7 @@ def get_predictions(model, X, k=None, columns=None):
         model = SKLearnWrapper(model)
     
     # Get probabilities
-    probs = model.predict_proba(X, columns=columns)[:, 1]
+    probs = model.predict_proba(X.to_numpy(copy=True), columns=X.columns)[:, 1]
 
     if k is None:
         y_pred = probs > 0.5
@@ -47,12 +50,18 @@ def get_predictions(model, X, k=None, columns=None):
     y_pred = np.zeros(len(probs))
     y_pred[top_k_indices] = 1
 
+    # Save predictions to database
+    if save_db_table is not None:
+        data = np.stack([y_pred, probs], axis=-1)
+        data = pd.DataFrame(index=X.index, data=data, columns=['Prediction', 'Probability'])
+        data.to_sql(save_db_table, get_connection(), schema='predictions', index=True)
+
     return y_pred, probs
 
 
 def evaluate(
     config, feature_table, label_table, 
-    model_paths, model_configs, discard_columns=[], log_dir='./results/'):
+    model_paths, model_configs, save_prefix='', discard_columns=[], log_dir='./results/'):
     """
     Test models on validation data and save the results to a csv file.
 
@@ -62,6 +71,7 @@ def evaluate(
         - label_table: name of table containing label features
         - model_paths: list of paths to the models being tested
         - model_configs: list of dictionaries containing model configs
+        - save_prefix: string prefix for any tables created
         - discard_columns: names of columns to discard before building matrices
         - log_dir: directory for saving evaluation results
 
@@ -74,8 +84,8 @@ def evaluate(
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    # Get feature and label arrays
-    X, y, feature_columns = get_data(feature_table, label_table, discard_columns)
+    # Get feature and label data
+    X, y = get_data_frames(feature_table, label_table, discard_columns)
     labeled_indices = np.logical_or(y == 0, y == 1)
 
     # Evaluate models
@@ -84,7 +94,7 @@ def evaluate(
     k_values = config['eval_config']['k']
     results = []
 
-    for model_path in model_paths:
+    for i, model_path in enumerate(model_paths):
         # Load saved model
         with open(model_path, 'rb') as file:
             model = pickle.load(file)
@@ -92,9 +102,11 @@ def evaluate(
         # Evaluate predictions
         model_results = []
         for k in k_values:
-            y_pred, probs = get_predictions(model, X, k=k, columns=feature_columns)
+            y_pred, probs = get_predictions(
+                model, X, k=k, 
+                save_db_table=f'{save_prefix}_model_{i}_pred_at_{k}')
             y_pred_filtered = y_pred[labeled_indices]
-            y_filtered = y[labeled_indices]
+            y_filtered = y.to_numpy(copy=True)[labeled_indices]
             model_results.extend([metric(y_filtered, y_pred_filtered) for metric in metrics])
 
         results.append(model_results)

@@ -146,6 +146,7 @@ def main(config, skip_preprocessing, log_dir):
             config,
             train_feature_table, train_label_table,
             model_paths, model_configurations,
+            save_prefix=f'{prefix}_train',
             discard_columns=['entity_id', 'split'],
             log_dir=train_save_dir)
 
@@ -154,6 +155,7 @@ def main(config, skip_preprocessing, log_dir):
             config,
             test_feature_table, test_label_table,
             model_paths, model_configurations,
+            save_prefix=f'{prefix}_test',
             discard_columns=['entity_id'],
             log_dir=test_save_dir)
 
