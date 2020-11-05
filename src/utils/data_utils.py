@@ -26,5 +26,4 @@ def get_data(feature_table, label_table, discard_columns=[]):
     df = df.set_index('entity_id')
     df = df.drop(columns=discard_columns)
     X, y = df.iloc[:, :-1], df.iloc[:, -1]
-    print(df.shape, len(set(list(df.index))))
     return X, y

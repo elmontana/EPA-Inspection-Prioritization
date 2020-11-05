@@ -56,7 +56,6 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
     if save_db_table is not None:
         data = np.stack([y_pred, probs], axis=-1)
         data = pd.DataFrame(index=X.index, data=data, columns=['Prediction', 'Probability'])
-        data = data.iloc[top_k_indices]
         data.to_sql(save_db_table, get_connection(), schema='predictions', index=True)
 
     return y_pred, probs
@@ -64,7 +63,9 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
 
 def evaluate(
     config, feature_table, label_table, 
-    model_paths, model_configs, save_prefix='', discard_columns=[], log_dir='./results/'):
+    model_paths, model_configs, 
+    save_preds_to_db=False, save_prefix='', 
+    discard_columns=[], log_dir='./results/'):
     """
     Test models on validation data and save the results to a csv file.
 
@@ -74,6 +75,7 @@ def evaluate(
         - label_table: name of table containing label features
         - model_paths: list of paths to the models being tested
         - model_configs: list of dictionaries containing model configs
+        - save_preds_to_db: whether or not to save predictions to database
         - save_prefix: string prefix for any tables created
         - discard_columns: names of columns to discard before building matrices
         - log_dir: directory for saving evaluation results
@@ -107,10 +109,9 @@ def evaluate(
         k_loop = tqdm.tqdm(k_values)
         for k in k_loop:
             k_loop.set_description(f'k={k}')
-            
-            y_pred, probs = get_predictions(
-                model, X, k=k, 
-                save_db_table=f'{save_prefix}_model_{i}_pred_at_{k}')
+
+            save_db_table = f'{save_prefix}_model_{i}_pred_at_{k}' if save_preds_to_db else None
+            y_pred, probs = get_predictions(model, X, k=k, save_db_table=save_db_table)
             y_pred_filtered = y_pred[labeled_indices]
             y_filtered = y.to_numpy(copy=True)[labeled_indices]
             model_results.extend([metric(y_filtered, y_pred_filtered) for metric in metrics])

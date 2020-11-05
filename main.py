@@ -134,6 +134,7 @@ def main(config, skip_preprocessing, log_dir):
         merge_tables(train_label_splits, train_label_table)
 
         # Train models as specified by our experiment configuration
+        print('\nTraining ...')
         model_configurations = train(
             config,
             train_feature_table, train_label_table,
@@ -141,20 +142,22 @@ def main(config, skip_preprocessing, log_dir):
             save_dir=train_save_dir)
 
         # Evaluate our models on the training data
+        print('\nEvaluating on training data ...')
         model_paths = glob.glob(f'{train_save_dir}/*.pkl')
         train_results = evaluate(
             config,
             train_feature_table, train_label_table,
             model_paths, model_configurations,
-            save_prefix=f'{prefix}_train',
             discard_columns=['split'],
             log_dir=train_save_dir)
 
         # Evaluate our models on the test data
+        print('\nEvaluating on test data ...')
         test_results = evaluate(
             config,
             test_feature_table, test_label_table,
             model_paths, model_configurations,
+            save_preds_to_db=True,
             save_prefix=f'{prefix}_test',
             log_dir=test_save_dir)
 

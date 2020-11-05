@@ -77,7 +77,6 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
     model_configurations = get_model_configurations(config)
     model_descriptions = []
 
-    print('Training models ...')
     training_loop = tqdm.tqdm(model_configurations)
     for model_num, (class_name, kwargs) in enumerate(training_loop):
         training_loop.set_description(f'Model #{model_num}: {class_name}')
