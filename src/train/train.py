@@ -1,6 +1,6 @@
-import numpy as np
 import importlib
 import itertools
+import numpy as np
 import os
 import pickle
 import tqdm
@@ -66,7 +66,8 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
         os.makedirs(save_dir)
 
     # Load data
-    X, y, _ = get_data(feature_table, label_table, discard_columns=discard_columns)
+    X, y = get_data(feature_table, label_table, discard_columns=discard_columns)
+    X, y = X.to_numpy(copy=True), y.to_numpy(copy=True).astype(int)
 
     # Filter out rows where a label does not exist
     labeled_indices = np.logical_or(y == 0, y == 1)
@@ -79,6 +80,8 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
     print('Training models ...')
     training_loop = tqdm.tqdm(model_configurations)
     for model_num, (class_name, kwargs) in enumerate(training_loop):
+        training_loop.set_description(f'Model #{model_num}: {class_name}')
+
         # Create & fit model
         model = create_model(class_name, kwargs)
         model.fit(X, y)
@@ -92,7 +95,6 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
         # Create model description
         description = f'Model #{model_num}\nPath: {model_path}\nClass: {class_name}\nKeyword Args: {kwargs}'
         model_descriptions.append(description)
-        training_loop.set_description(f'Model #{model_num}: {class_name}')
 
     # Log the model descriptions
     experiment_name = config['experiment_name']

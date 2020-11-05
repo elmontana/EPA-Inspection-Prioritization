@@ -1,12 +1,14 @@
+import importlib
 import numpy as np
 import os
 import pandas as pd
 import pickle
-import importlib
+import tqdm
+
 
 from pathlib import Path
 from ..models.wrappers import SKLearnWrapper
-from ..utils.data_utils import get_data, get_data_frames
+from ..utils.data_utils import get_data
 from ..utils.plot_utils import plot_metric_at_k, plot_pr_at_k
 from ..utils.sql_utils import get_connection
 
@@ -35,7 +37,7 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
         model = SKLearnWrapper(model)
     
     # Get probabilities
-    probs = model.predict_proba(X.to_numpy(copy=True), columns=X.columns)[:, 1]
+    probs = model.predict_proba(X.to_numpy(copy=True), columns=list(X.columns))[:, 1]
 
     if k is None:
         y_pred = probs > 0.5
@@ -54,6 +56,7 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
     if save_db_table is not None:
         data = np.stack([y_pred, probs], axis=-1)
         data = pd.DataFrame(index=X.index, data=data, columns=['Prediction', 'Probability'])
+        data = data.iloc[top_k_indices]
         data.to_sql(save_db_table, get_connection(), schema='predictions', index=True)
 
     return y_pred, probs
@@ -85,7 +88,7 @@ def evaluate(
         os.makedirs(log_dir)
 
     # Get feature and label data
-    X, y = get_data_frames(feature_table, label_table, discard_columns)
+    X, y = get_data(feature_table, label_table, discard_columns=discard_columns)
     labeled_indices = np.logical_or(y == 0, y == 1)
 
     # Evaluate models
@@ -94,14 +97,17 @@ def evaluate(
     k_values = config['eval_config']['k']
     results = []
 
-    for i, model_path in enumerate(model_paths):
+    for i, model_path in enumerate(tqdm.tqdm(model_paths)):
         # Load saved model
         with open(model_path, 'rb') as file:
             model = pickle.load(file)
 
         # Evaluate predictions
         model_results = []
-        for k in k_values:
+        k_loop = tqdm.tqdm(k_values)
+        for k in k_loop:
+            k_loop.set_description(f'k={k}')
+            
             y_pred, probs = get_predictions(
                 model, X, k=k, 
                 save_db_table=f'{save_prefix}_model_{i}_pred_at_{k}')
