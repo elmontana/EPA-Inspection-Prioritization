@@ -57,14 +57,12 @@ def run_sql_from_file(conn, path, replace={}):
         - path: path to SQL file
         - replace: ???
     """
-    print(f'Running {path}...', end=' ')
     with open(path, 'r') as f:
         query = [s.strip() + ';' for s in f.read().split(';')[:-1]]
         for s in query:
             for k, v in replace.items():
                 s = s.replace(k, v)
             run_sql_from_string(conn, s)
-    print('done.')
 
 
 def run_sql_from_string(conn, statement):

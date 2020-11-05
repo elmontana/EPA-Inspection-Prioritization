@@ -1,6 +1,7 @@
 import os
 import glob
 import sqlalchemy
+import tqdm
 
 from .load_acs import load_acs_data
 from ..utils.sql_utils import run_sql_from_file
@@ -32,16 +33,15 @@ def run_data_loading(conn, mode, prefix):
 
 
 def run_step(conn, sql_files, prefix):
-    for sql_filename in sql_files:
-        run_sql_from_file(
-            conn,
-            os.path.join(get_path(f'sql/{sql_filename}')),
-            replace={'{prefix}': prefix})
+    sql_loop = tqdm.tqdm([get_path(f'sql/{filename}') for filename in sql_files])
+    for path in sql_loop:
+        sql_loop.set_description(path)
+        run_sql_from_file(conn, path, replace={'{prefix}': prefix})
 
 
 def main(conn, config):
     prefix = config['prefix']
-    run_data_loading(conn, 'acs', config['prefix'])
+    #run_data_loading(conn, 'acs', config['prefix'])
     for sql_group in config['sql']:
         run_step(conn, sql_group['files'], config['prefix'])
 

@@ -94,7 +94,7 @@ def main(config, run_preprocessing, log_dir):
     if not run_preprocessing:
         print('Preprocessing skipped.')
     else:
-        print('Preprosessing ...')
+        print('Preprocessing ...')
         run_preprocess(conn, config['preprocessing_config'])
         print('Preprocessing done.')
 
