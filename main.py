@@ -71,11 +71,11 @@ def parse_temporal_config(temporal_config):
 @click.command()
 @click.option('--config', default='experiments/test_run.yaml',
     help='Path to config file.')
-@click.option('--skip_preprocessing', is_flag=True,
-    help='Whether to skip the preprocessing step.')
+@click.option('--run_preprocessing', is_flag=True,
+    help='Whether or not to skip the preprocessing step.')
 @click.option('--log_dir', type=str, default='logs',
     help='Directory to save trained model and testing results.')
-def main(config, skip_preprocessing, log_dir):
+def main(config, run_preprocessing, log_dir):
     # Load experiment configuration
     with open(config) as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
@@ -91,7 +91,7 @@ def main(config, skip_preprocessing, log_dir):
 
     # Preprocessing
     preprocessing_prefix = config['preprocessing_config']['prefix']
-    if skip_preprocessing:
+    if not run_preprocessing:
         print('Preprocessing skipped.')
     else:
         print('Preprosessing ...')
