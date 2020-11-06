@@ -49,6 +49,7 @@ preprocessing_config:
         - 'semantic_events.sql'
         - 'semantic_labels.sql'
         - 'semantic_reporting.sql'
+        - 'semantic_acs.sql'
 
 label_config:
   query: |
