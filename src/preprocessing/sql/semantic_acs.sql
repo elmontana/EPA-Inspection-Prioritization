@@ -1,5 +1,6 @@
-create table features_acs as (
-	select f.id_number, t.* from data_exploration.rcra_facilities f
+drop table if exists data_exploration.aggregated_features_acs;
+create table data_exploration.aggregated_features_acs as (
+	select distinct f.id_number, t.*, zip_county_pop_table.county, zip_county_pop_table.county_population from data_exploration.rcra_facilities f
 	left join (
 		select x.zip, sum(x."B01003_001E") zip_population -- add more sums here for more fields
 		from (select l.zip, a.*
@@ -10,11 +11,11 @@ create table features_acs as (
 	on f.zip_code = t.zip
 
 	left join (
-		select linking_table.zip_code, county_pop_table.* from data_exploration.acs_link linking_table
+		select linking_table.zip, county_pop_table.* from data_exploration.acs_link linking_table
 		left join(
-		select x.county, sum(x."B01003_001E") county_population -- add more sums here for more fields
+		select a.county, sum(a."B01003_001E") county_population -- add more sums here for more fields
 		from data_exploration.acs a
-		) county_pop_table
+		group by a.county) county_pop_table
 	on linking_table.county = county_pop_table.county) zip_county_pop_table
-	on f.zip_code = zip_county_pop_table.zip_code
+	on f.zip_code = zip_county_pop_table.zip
 );
