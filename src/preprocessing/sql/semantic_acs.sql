@@ -1,7 +1,7 @@
 -- below is just a copy paste of above, with the first two lines changed to create in semantic schema
 -- perhaps something else needs to be changed?
-drop table if exists semantic.{prefix}_features_acs;
-create table semantic.{prefix}_features_acs as (
+drop table if exists semantic.{prefix}_acs;
+create table semantic.{prefix}_acs as (
 	select distinct f.id_number, t.*, zip_county_pop_table.county, zip_county_pop_table.county_population from data_exploration.rcra_facilities f
 	left join (
 		select x.zip, sum(x."B01003_001E") zip_population -- add more sums here for more fields
