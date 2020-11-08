@@ -22,8 +22,8 @@ create table data_exploration.aggregated_features_acs as (
 
 
 
-#below is just a copy paste of above, with the first two lines changed to create in semantic schema
-#perhaps something else needs to be changed?
+-- below is just a copy paste of above, with the first two lines changed to create in semantic schema
+-- perhaps something else needs to be changed?
 drop table if exists semantic.features_acs;
 create table semantic.features_acs as (
 	select distinct f.id_number, t.*, zip_county_pop_table.county, zip_county_pop_table.county_population from data_exploration.rcra_facilities f
