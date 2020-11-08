@@ -2,6 +2,8 @@
 -- perhaps something else needs to be changed?
 drop table if exists semantic.{prefix}_acs;
 create table semantic.{prefix}_acs as (
+	select e.id as entity_id, acs_processed.*
+	(
 	select distinct f.id_number, t.*, zip_county_pop_table.county, zip_county_pop_table.county_population from data_exploration.rcra_facilities f
 	left join (
 		select x.zip, sum(x."B01003_001E") zip_population -- add more sums here for more fields
@@ -20,4 +22,7 @@ create table semantic.{prefix}_acs as (
 		group by a.county) county_pop_table
 	on linking_table.county = county_pop_table.county) zip_county_pop_table
 	on f.zip_code = zip_county_pop_table.zip
+	) as acs_processed
+	inner join cleaned.{prefix}_entity_id e
+	on acs_processed.id_number = e.id_number
 );
