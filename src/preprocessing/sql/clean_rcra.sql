@@ -30,7 +30,7 @@ create table cleaned.{prefix}_rcra_cmecomp3 as (
     c.corrective_action_component_flag, c.appeal_initiated_date, c.appeal_resolved_date, c.disposition_status_date, c.disposition_status,
     c.disposition_status_description, c.cafo_sequence_number, c.respondent_name, c.lead_agency, c.enforcement_type, c.expenditure_amount,
     c.sep_scheduled_completion_date, c.sep_actual_completion_date, c.sep_defaulted_date, c.sep_type, c.proposed_penalty_amount,
-    c.final_monetary_amount, c.paid_amount, c.final_count, c.final_amount
+    c.final_monetary_amount, c.paid_amount, c.final_count, c.final_amount, c.citizen_complaint_flag
     from rcra.cmecomp3 c inner join cleaned.{prefix}_rcra_handler h on c.handler_id = h.epa_handler_id
     where c.evaluation_start_date >= h.receive_date
     order by h.epa_handler_id, c.evaluation_start_date, h.receive_date desc
