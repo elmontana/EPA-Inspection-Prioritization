@@ -63,7 +63,7 @@ label_config:
 feature_config:
   -
     prefix: 'acs'
-    from_table: 'semaatic.{prefix}_acs'
+    from_table: 'semantic.{prefix}_acs'
     table_type: 'entity'
     imputation: 'mean_noflag'
   -
