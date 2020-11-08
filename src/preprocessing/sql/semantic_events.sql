@@ -6,6 +6,7 @@ create table semantic.{prefix}_events as (
         max(evaluation_start_date) event_date,
         max(greatest(evaluation_start_date, violation_determined_date, actual_return_to_compliance_date, enforcement_action_date, disposition_status_date)) as knowledge_date,
         case when (sum(case when found_violation_flag = 'Y' then 1 else 0 end) > 0) then 1 else 0 end as found_violation,
+        case when (sum(case when citizen_complaint_flag = 'Y' then 1 else 0 end) > 0) then 1 else 0 end as citizen_complaint,
         coalesce(max(final_amount), 0) as penalty_amount
         from cleaned.{prefix}_rcra_cmecomp3
         group by epa_handler_id, receive_date

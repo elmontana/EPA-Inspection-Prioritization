@@ -90,6 +90,10 @@ feature_config:
         metrics:
           - 'count'
       -
+        column_name: 'citizen_complaint'
+        metrics:
+          - 'count'
+      -
         column_name: 'penalty_amount'
         metrics:
           - 'count'
