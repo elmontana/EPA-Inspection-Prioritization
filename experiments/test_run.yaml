@@ -43,6 +43,7 @@ preprocessing_config:
       name: 'clean'
       files:
         - 'clean_rcra.sql'
+        - 'clean_acs.sql'
     -
       name: 'semantic'
       files:
