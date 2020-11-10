@@ -16,10 +16,11 @@ def get_impute_str(column_name, imputation):
         - impute_col_flag: boolean if true an impuatation flag column will be created
     """
     impute_sql = ''
-    #check whether to create an imputation flag
+
+    # check whether to create an imputation flag
     impute_col_flag = not imputation.endswith('_noflag')
 
-    #determine type of imputation and create appropriate sql code to do so
+    # determine type of imputation and create appropriate sql code to do so
     if imputation.startswith('zero'):
         impute_sql = '0'
     elif imputation.startswith('inf'):
@@ -65,14 +66,14 @@ def main(conn, config, cohort_table, to_table,
         return inc
     get_alias = alias_counter()
 
-    # For each table features need to be aggregated from, impute missing features, and create sql string that aggregates features by facility, and left joins them to the cohort table
-    for agg_table in config:
+    # for each table features need to be aggregated from, impute missing features, and create sql string that aggregates features by facility, and left joins them to the cohort table
+    for table_ix, agg_table in enumerate(config):
         output_prefix = agg_table['prefix']
         input_table = agg_table['from_table']
         input_table = input_table.replace('{prefix}', preprocessing_prefix)
         table_type = agg_table['table_type']
 
-        #if the row driver is facilities, impute features and join to the cohort table
+        # if the row driver is facilities, impute features and join to the cohort table
         if table_type == 'entity':
             column_avoid_list = ['entity_id']
             if 'event_date_column_name' in agg_table:
@@ -80,6 +81,8 @@ def main(conn, config, cohort_table, to_table,
                 column_avoid_list += [event_date_col_name]
             table_columns = sql.get_table_columns(conn, input_table)
             feature_names = [x for x in table_columns if not x in column_avoid_list]
+            if 'columns' in agg_table:
+                feature_names = [s for s in feature_names if s in agg_table['columns']]
 
             for feature_name in feature_names:
                 imputation = agg_table['imputation']
@@ -103,7 +106,7 @@ def main(conn, config, cohort_table, to_table,
                 get_columns_query = f'select entity_id, {", ".join(feature_names)} from {input_table}'
 
             join_query += ' '
-            join_query += f'left join ({get_columns_query}) in_table using (entity_id)'
+            join_query += f'left join ({get_columns_query}) in_table_{table_ix} using (entity_id)'
 
         # if the row driver is inspections, impute features, aggregate to the facility level, and join to the cohort table
         elif table_type == 'event':
@@ -115,8 +118,7 @@ def main(conn, config, cohort_table, to_table,
                 for metric in agg_column['metrics']:
                     if metric == "datediff":
                         feature_name = f'{output_prefix}_days_since_{agg_column_name}'
-                        #feature_str = f"min({metric}(day, {agg_column_name}, '{end_time}'::date)) as {feature_name}"
-                        feature_str = f"MIN('{end_time}'::date - {agg_column_name}) as {feature_name}"
+                        feature_str = f"min('{end_time}'::date - {agg_column_name}) as {feature_name}"
 
                         feature_columns.append(feature_str)
 
@@ -127,7 +129,7 @@ def main(conn, config, cohort_table, to_table,
                     else:
                         feature_name = f'{output_prefix}_{metric}_{agg_column_name}'
                         feature_str = f'{metric}({agg_column_name}) as {feature_name}'
-                    
+
                         feature_columns.append(feature_str)
 
                         imputation = agg_table['imputation'][metric]

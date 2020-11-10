@@ -8,12 +8,17 @@ Created on Mon 11/02/2020 2020
 """
 import censusdata
 import re
+from tqdm import tqdm
 from sqlalchemy import create_engine
+
+from ..utils.sql_utils import run_sql_from_string
+
+
 
 def load_acs_data(conn, variables, variable_names, table_name, survey, year):
   """
   Downloads specified data about the state of New York from the ACS and creates a table in the database
-  
+
   Arguments:
         - conn: db connection
         - variables: list of variable names to pull from ACS survey
@@ -22,30 +27,33 @@ def load_acs_data(conn, variables, variable_names, table_name, survey, year):
         - survey: name of acs survey to pull data from
         - year: year of acs survey data should be pulled from
   """
-  ##Part 1 - get data from Census
-  counties = censusdata.geographies(censusdata.censusgeo([('state','36'), ('county','*')]),survey, year, key='db8c95da0a4bf1d0f0b43c6e66158daaef578790')
+  # drop table if already exists
+  run_sql_from_string(conn, f'drop table if exists data_exploration.{table_name}')
+
+  # get data from census
+  census_geo = [('state','36'), ('county','*')]
+  counties = censusdata.geographies(censusdata.censusgeo(census_geo),
+                                    survey, year,
+                                    key='db8c95da0a4bf1d0f0b43c6e66158daaef578790')
   countylist = list(counties.values())
 
-  for county in countylist:
+  for county in tqdm(countylist, desc='Load ACS data'):
       params = county.params()
-      if(county==countylist[0]):
+      if county == countylist[0]:
         data = censusdata.download(survey, year,
-                             censusdata.censusgeo([params[0],params[1], ('block group', '*')]),
+                             censusdata.censusgeo([params[0], params[1], ('block group', '*')]),
                              variables, key='db8c95da0a4bf1d0f0b43c6e66158daaef578790')
       else:
         data = data.append(censusdata.download(survey, year,
-                             censusdata.censusgeo([params[0],params[1], ('block group', '*')]),
+                             censusdata.censusgeo([params[0], params[1], ('block group', '*')]),
                              variables, key='db8c95da0a4bf1d0f0b43c6e66158daaef578790'))
 
-  #Part 2 Transform data
+  # transform data
   data.rename(columns=variable_names, inplace=True)
   data.reset_index(inplace=True)
-  data['index'] = data['index'].apply(str)
-  data['index'] = data['index'].apply(lambda x: re.sub(':.*','',x))
-  data[['block_grp','tract','county', 'state']]=data['index'].str.split(',', expand=True)
-  data['block_grp']=data['block_grp'].apply(lambda x: int(re.search('\d+',x).group(0)))
-  data['tract']=data['tract'].apply(lambda x: int(re.search('\d+',x).group(0)))
-  data = data.drop(['index'],axis=1)
+  for i, col_name in enumerate(['state', 'county', 'tract', 'block group']):
+      data[col_name] = data['index'].apply(lambda col: str(col.geo[i][1]))
+  data = data.drop(['index'], axis=1)
 
-  #Part 3 Load on Database
-  data.to_sql(table_name, conn, schema='data_exploration')
+  # load on database
+  data.to_sql(table_name, conn, schema='data_exploration', index=False)
