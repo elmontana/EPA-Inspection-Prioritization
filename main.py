@@ -2,6 +2,7 @@ import click
 import getpass
 import glob
 import os
+import tqdm
 import yaml
 
 import src.utils.date_utils as date_utils
@@ -11,6 +12,9 @@ from src.preprocessing.run import main as run_preprocess
 from src.model_prep.cohorts import prepare_cohort, merge_tables
 from src.train import train
 from src.evaluate import evaluate
+
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
 
 
 
@@ -39,7 +43,7 @@ def parse_temporal_config(temporal_config):
     train_splits = []
     test_splits = []
 
-    # For every training instance, create a dictionary of start and endtimes
+    # For every training instance, create a dictionary of start and end times
     # for the training and testing data
     for i in range(temporal_config['num_train_repeat']):
         train_start_time = feature_start + repeat_interval * i
@@ -105,7 +109,8 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
     train_dates_list, test_dates_list = parse_temporal_config(config['temporal_config'])
 
     # Training and evaluation
-    for train_dates, test_dates in zip(train_dates_list, test_dates_list):
+    experiment_loop = tqdm.tqdm(list(zip(train_dates_list, test_dates_list)), desc='\nExperiment Repeats')
+    for train_dates, test_dates in experiment_loop:
         split_time_abbr = date_utils.date_to_string(test_dates['label_start_time'])
         split_time_abbr = split_time_abbr.replace('-', '')[2:]
         split_name = f'{split_time_abbr}'
@@ -117,6 +122,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
             os.getcwd(), log_dir, prefix, 'test_' + exp_time)
 
         # Prepare cohort as specified by our experiment configuration
+        print('Preparing cohorts ...')
         train_feature_splits, train_label_splits = [], []
         for i, train_dates_aod in enumerate(train_dates):
             train_feature_table, train_label_table = prepare_cohort(
@@ -137,7 +143,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
         merge_tables(train_label_splits, train_label_table)
 
         # Train models as specified by our experiment configuration
-        print('\nTraining ...')
+        print('Training ...')
         model_configurations = train(
             config,
             train_feature_table, train_label_table,
@@ -145,7 +151,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
             save_dir=train_save_dir)
 
         # Evaluate our models on the training data
-        print('\nEvaluating on training data ...')
+        print('Evaluating on training data ...')
         model_paths = glob.glob(f'{train_save_dir}/*.pkl')
         train_results = evaluate(
             config,

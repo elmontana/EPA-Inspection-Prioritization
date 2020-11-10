@@ -82,9 +82,12 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
         training_loop.set_description(f'Model #{model_num}: {class_name}')
 
         # Create & fit model
-        model = create_model(class_name, kwargs)
-        model.fit(X, y)
-
+        try:
+            model = create_model(class_name, kwargs)
+            model.fit(X, y)
+        except:
+            continue
+        
         # Save model
         experiment_name = config['experiment_name']
         model_path = Path(save_dir) / f'{experiment_name}_{class_name}_{model_num}.pkl'
