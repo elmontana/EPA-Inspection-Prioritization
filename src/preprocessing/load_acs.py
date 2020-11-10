@@ -48,4 +48,4 @@ def load_acs_data(conn, variables, variable_names, table_name, survey, year):
   data = data.drop(['index'],axis=1)
 
   #Part 3 Load on Database
-  data.to_sql(table_name, conn, schema='data_exploration')
+  data.to_sql(table_name, conn, schema='data_exploration', index=False)
