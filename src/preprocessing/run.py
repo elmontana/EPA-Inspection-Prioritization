@@ -14,7 +14,7 @@ get_path = lambda s: os.path.join(dir_path, s)
 
 def run_data_loading(conn, mode, prefix):
     if mode == 'acs':
-        #choose ACS variables to include and load them
+        # choose ACS variables to include and load them
         variables = ['B01003_001E','B02001_002E', 'B02001_003E','B02001_005E','B19049_001E','B15003_002E','B15003_017E','B15003_022E','B15003_023E','B15003_025E']
         variable_names = {'B01003_001E':'total_pop',
                   'B02001_002E':'white_pop', 
@@ -39,9 +39,10 @@ def run_step(conn, sql_files, prefix):
         run_sql_from_file(conn, path, replace={'{prefix}': prefix})
 
 
-def main(conn, config):
+def main(conn, config, run_data_upload=False):
     prefix = config['prefix']
-    #run_data_loading(conn, 'acs', config['prefix'])
+    if run_data_upload:
+        run_data_loading(conn, 'acs', config['prefix'])
     for sql_group in config['sql']:
         run_step(conn, sql_group['files'], config['prefix'])
 

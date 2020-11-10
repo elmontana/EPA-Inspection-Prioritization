@@ -1,6 +1,6 @@
 drop table if exists semantic.{prefix}_events;
 create table semantic.{prefix}_events as (
-    select t.id as entity_id, v.id as event_id, d.event_date, d.knowledge_date, d.found_violation, d.penalty_amount from (
+    select t.id as entity_id, v.id as event_id, d.event_date, d.knowledge_date, d.found_violation, d.citizen_complaint, d.penalty_amount from (
         select
         epa_handler_id, receive_date,
         max(evaluation_start_date) event_date,
