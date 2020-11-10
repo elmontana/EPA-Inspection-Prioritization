@@ -1,6 +1,6 @@
-version: 'v0'
+version: 'v1'
 
-experiment_name: 'test_run'
+experiment_name: 'model_grid'
 
 temporal_config:
   # duration for aggregating feature and labels for both trainig and testing
