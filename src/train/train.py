@@ -6,6 +6,7 @@ import pickle
 import tqdm
 
 from pathlib import Path
+from ..models.wrappers import SKLearnWrapper
 from ..utils.data_utils import get_data
 
 
@@ -23,7 +24,13 @@ def create_model(model_class_name, model_kwargs):
     """
     module_name, class_name = model_class_name.rsplit('.', 1)
     model_class = getattr(importlib.import_module(module_name), class_name)
-    return model_class(**model_kwargs)
+    model = model_class(**model_kwargs)
+
+    # Wrap sklearn models
+    if model.__module__.startswith('sklearn'):
+        model = SKLearnWrapper(model)
+
+    return model
 
 
 def get_model_configurations(config):

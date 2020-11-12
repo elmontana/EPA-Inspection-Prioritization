@@ -7,7 +7,6 @@ import tqdm
 
 
 from pathlib import Path
-from ..models.wrappers import SKLearnWrapper
 from ..utils.data_utils import get_data
 from ..utils.plot_utils import plot_metric_at_k, plot_pr_at_k
 from ..utils.sql_utils import get_connection
@@ -31,10 +30,6 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
         - y_pred: an array of label predictions
         - probs: the probabilities for each prediction
     """
-
-    # Wrap sklearn models
-    if model.__module__.startswith('sklearn'):
-        model = SKLearnWrapper(model)
     
     # Get probabilities
     probs = model.predict_proba(X.to_numpy(copy=True), columns=list(X.columns))[:, 1]
