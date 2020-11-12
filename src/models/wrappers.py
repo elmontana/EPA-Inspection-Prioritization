@@ -13,13 +13,14 @@ class SKLearnWrapper(BaseModel):
         self.normalizer = StandardScaler()
 
         self.should_normalize_inputs = False
-        if self.model.__module__ == 'sklearn.linear_model.LogisticRegression':
+        if self.model.__class__.__name__ == 'LogisticRegression':
             self.should_normalize_inputs = True
 
 
     def fit(self, X, y, *args, **kwargs):
         if self.should_normalize_inputs:
-            self.normalizer.fit(X)
+            X_normalized = self.normalizer.fit_transform(X)
+            self.model.fit(X_normalized, y, *args, **kwargs)
 
         return self.model.fit(X, y, *args, **kwargs)
 
