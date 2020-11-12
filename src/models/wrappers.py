@@ -20,7 +20,7 @@ class SKLearnWrapper(BaseModel):
     def fit(self, X, y, *args, **kwargs):
         if self.should_normalize_inputs:
             X_normalized = self.normalizer.fit_transform(X)
-            self.model.fit(X_normalized, y, *args, **kwargs)
+            return self.model.fit(X_normalized, y, *args, **kwargs)
 
         return self.model.fit(X, y, *args, **kwargs)
 
