@@ -3,7 +3,9 @@ import itertools
 import numpy as np
 import os
 import pickle
-import tqdm
+from tqdm import tqdm
+from itertools import repeat
+from multiprocessing import Pool
 
 from pathlib import Path
 from ..utils.data_utils import get_data
@@ -49,6 +51,49 @@ def get_model_configurations(config):
     return model_configurations
 
 
+def train_single_model_single_arg(arg):
+    """
+    Train a single model with provided model specifications and data, using a
+    single argument to fit the imap interface.
+
+    Arguments:
+        - arg: a tuple that includes arguments to a train_single_model call.
+    """
+    experiment_name, model_num, model_config, save_dir, X, y = arg
+    return train_single_model(experiment_name, model_num, model_config, save_dir, X, y)
+
+
+def train_single_model(experiment_name, model_num, model_config, save_dir, X, y):
+    """
+    Train a single model with provided model specifications and data.
+
+    Arguments:
+        - experiment_name: name of the experiment
+        - model_num: index of the model
+        - model_config: configuration of the model
+        - save_dir: directory to save the model
+        - X: features
+        - y: labels
+    """
+    class_name, kwargs = model_config
+
+    # Create & fit model
+    try:
+        model = create_model(class_name, kwargs)
+        model.fit(X, y)
+    except:
+        return None
+    
+    # Save model
+    model_path = Path(save_dir) / f'{experiment_name}_{class_name}_{model_num}.pkl'
+    with open(model_path, 'wb') as file:
+        pickle.dump(model, file)
+
+    # Create model description
+    description = f'Model #{model_num}\nPath: {model_path}\nClass: {class_name}\nKeyword Args: {kwargs}'
+    return model_num, description
+
+
 def train(config, feature_table, label_table, discard_columns=[], save_dir='./saved_models/'):
     """
     Train models as specified by a config file.
@@ -74,32 +119,28 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
     X, y = X[labeled_indices], y[labeled_indices]
 
     # Train models
+    experiment_name = config['experiment_name']
     model_configurations = get_model_configurations(config)
-    model_descriptions = []
+    num_models = len(model_configurations)
+    model_descriptions = [None] * num_models
+    pool = Pool(processes=5)
+    for _ in tqdm(pool.imap(train_single_model_single_arg,
+                            zip(repeat(experiment_name, num_models),
+                                list(range(num_models)), model_configurations,
+                                repeat(save_dir, num_models),
+                                repeat(X, num_models), repeat(y, num_models))),
+                  total=num_models, desc='Training models'):
+        if _ is not None:
+            model_num, model_description = _
+            model_descriptions[model_num] = model_description
+    pool.close()
 
-    training_loop = tqdm.tqdm(model_configurations)
-    for model_num, (class_name, kwargs) in enumerate(training_loop):
-        training_loop.set_description(f'Model #{model_num}: {class_name}')
-
-        # Create & fit model
-        try:
-            model = create_model(class_name, kwargs)
-            model.fit(X, y)
-        except:
-            continue
-        
-        # Save model
-        experiment_name = config['experiment_name']
-        model_path = Path(save_dir) / f'{experiment_name}_{class_name}_{model_num}.pkl'
-        with open(model_path, 'wb') as file:
-            pickle.dump(model, file)
-
-        # Create model description
-        description = f'Model #{model_num}\nPath: {model_path}\nClass: {class_name}\nKeyword Args: {kwargs}'
-        model_descriptions.append(description)
+    # Filter out trainings that failed
+    success_train_indices = [i for i in range(num_models) if model_descriptions[i] is not None]
+    model_configurations = [x for i, x in enumerate(model_configurations) if i in success_train_indices]
+    model_descriptions = [x for x in model_descriptions if x is not None]
 
     # Log the model descriptions
-    experiment_name = config['experiment_name']
     log_path = Path(save_dir) / f'{experiment_name}_info.txt'
     log_text = '\n\n'.join(model_descriptions)
     with open(log_path, 'w') as log_file:

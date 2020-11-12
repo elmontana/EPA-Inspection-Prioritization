@@ -3,7 +3,9 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
-import tqdm
+from tqdm import tqdm
+from itertools import repeat
+from multiprocessing import Pool
 
 
 from pathlib import Path
@@ -35,7 +37,7 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
     # Wrap sklearn models
     if model.__module__.startswith('sklearn'):
         model = SKLearnWrapper(model)
-    
+
     # Get probabilities
     probs = model.predict_proba(X.to_numpy(copy=True), columns=list(X.columns))[:, 1]
 
@@ -46,7 +48,7 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
     if isinstance(k, float):
         # Convert k from proportion to an integer number of positive labels
         k = int(float(len(probs)) * k)
-    
+
     # Create an array of label predictions
     top_k_indices = probs.argsort()[-k:][::-1]
     y_pred = np.zeros(len(probs))
@@ -61,10 +63,53 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
     return y_pred, probs
 
 
+def evaluate_single_model_single_arg(arg):
+    """
+    Evaluate a single model with provided model specifications and data, using a
+    single argument to fit the imap interface.
+
+    Arguments:
+        - arg: a tuple that includes arguments to a evaluate_single_model call.
+    """
+    return evaluate_single_model(*arg)
+
+
+def evaluate_single_model(save_prefix, save_preds_to_db, i, model_path,
+                          k_values, X, y, labeled_indices, metrics):
+    """
+    Evaluate a single model with provided model specifications and data.
+
+    Arguments:
+        - save_prefix: prefix for saving the results
+        - save_preds_to_db: whether to save predictions to database
+        - i: index for the model
+        - model_path: path to load the model
+        - k_values: k values used for computing the metrics
+        - X: features
+        - y: labels
+        - labeled_indices: indices that have labels
+        - metrics: a list of metrics to use
+    """
+    # Load saved model
+    with open(model_path, 'rb') as file:
+        model = pickle.load(file)
+
+    # Evaluate predictions
+    model_results = []
+    for k in k_values:
+        save_db_table = f'{save_prefix}_model_{i}_pred_at_{k}' if save_preds_to_db else None
+        y_pred, probs = get_predictions(model, X, k=k, save_db_table=save_db_table)
+        y_pred_filtered = y_pred[labeled_indices]
+        y_filtered = y.to_numpy(copy=True)[labeled_indices]
+        model_results.extend([metric(y_filtered, y_pred_filtered) for metric in metrics])
+
+    return i, model_results
+
+
 def evaluate(
-    config, feature_table, label_table, 
-    model_paths, model_configs, 
-    save_preds_to_db=False, save_prefix='', 
+    config, feature_table, label_table,
+    model_paths, model_configs,
+    save_preds_to_db=False, save_prefix='',
     discard_columns=[], log_dir='./results/'):
     """
     Test models on validation data and save the results to a csv file.
@@ -97,26 +142,21 @@ def evaluate(
     metrics_str = [s.rsplit('.', 1) for s in config['eval_config']['metrics']]
     metrics = [getattr(importlib.import_module(m), c) for (m, c) in metrics_str]
     k_values = config['eval_config']['k']
-    results = []
 
-    for i, model_path in enumerate(tqdm.tqdm(model_paths)):
-        # Load saved model
-        with open(model_path, 'rb') as file:
-            model = pickle.load(file)
-
-        # Evaluate predictions
-        model_results = []
-        k_loop = tqdm.tqdm(k_values)
-        for k in k_loop:
-            k_loop.set_description(f'k={k}')
-
-            save_db_table = f'{save_prefix}_model_{i}_pred_at_{k}' if save_preds_to_db else None
-            y_pred, probs = get_predictions(model, X, k=k, save_db_table=save_db_table)
-            y_pred_filtered = y_pred[labeled_indices]
-            y_filtered = y.to_numpy(copy=True)[labeled_indices]
-            model_results.extend([metric(y_filtered, y_pred_filtered) for metric in metrics])
-
-        results.append(model_results)
+    pool = Pool(processes=5)
+    num_models = len(model_paths)
+    args = zip(repeat(save_prefix, num_models),
+               repeat(save_preds_to_db, num_models), list(range(num_models)),
+               model_paths, repeat(k_values, num_models),
+               repeat(X, num_models), repeat(y, num_models),
+               repeat(labeled_indices, num_models),
+               repeat(metrics, num_models))
+    results = [None] * num_models
+    for _ in tqdm(pool.imap(evaluate_single_model_single_arg, args),
+                  total=num_models, desc='Evaluate models'):
+        i, model_results = _
+        results[i] = model_results
+    pool.close()
 
     # Convert results to dataframe table
     columns = [[f'{metric.__name__}_at_{k}' for metric in metrics] for k in k_values]
