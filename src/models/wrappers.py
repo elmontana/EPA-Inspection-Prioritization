@@ -13,8 +13,13 @@ class SKLearnWrapper(BaseModel):
         self.normalizer = StandardScaler()
 
         self.should_normalize_inputs = False
-        if model_type == 'LogisticRegression':
+        if self.model_type == 'LogisticRegression':
             self.should_normalize_inputs = True
+
+
+    @property
+    def model_type(self):
+        return self.model.__class__.__name__
 
 
     def fit(self, X, y, *args, **kwargs):
@@ -42,15 +47,13 @@ class SKLearnWrapper(BaseModel):
 
 
     def feature_importance(self, *args, **kwargs):
-        model_type = self.model.__class__.__name__
-
-        if model_type == 'LogisticRegression':
+        if self.model_type == 'LogisticRegression':
             pass
-        elif model_type == 'DecisionTreeClassifier':
+        elif self.model_type == 'DecisionTreeClassifier':
             pass
-        elif model_type == 'RandomForestClassifier':
+        elif self.model_type == 'RandomForestClassifier':
             pass
-        elif model_type == 'GradientBoostingClassifier':
+        elif self.model_type == 'GradientBoostingClassifier':
             pass
 
         raise NotImplementedError
