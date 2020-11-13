@@ -3,11 +3,12 @@ import itertools
 import numpy as np
 import os
 import pickle
-from tqdm import tqdm
+import tqdm
+
 from itertools import repeat
 from multiprocessing import Pool
-
 from pathlib import Path
+
 from ..models.wrappers import SKLearnWrapper
 from ..utils.data_utils import get_data
 
@@ -58,29 +59,22 @@ def get_model_configurations(config):
     return model_configurations
 
 
-def train_single_model_single_arg(arg):
-    """
-    Train a single model with provided model specifications and data, using a
-    single argument to fit the imap interface.
-
-    Arguments:
-        - arg: a tuple that includes arguments to a train_single_model call.
-    """
-    experiment_name, model_num, model_config, save_dir, X, y = arg
-    return train_single_model(experiment_name, model_num, model_config, save_dir, X, y)
-
-
-def train_single_model(experiment_name, model_num, model_config, save_dir, X, y):
+def train_single_model(experiment_name, model_index, model_config, save_dir, X, y):
     """
     Train a single model with provided model specifications and data.
 
     Arguments:
         - experiment_name: name of the experiment
-        - model_num: index of the model
-        - model_config: configuration of the model
+        - model_index: index of the model
+        - model_config: configuration of the model;
+            a tuple of the form (class_name, kwargs)
         - save_dir: directory to save the model
-        - X: features
-        - y: labels
+        - X: feature array
+        - y: label array
+
+    Returns:
+        - model_config: the configuration of the model
+        - model_path: the path to the saved model
     """
     class_name, kwargs = model_config
 
@@ -88,17 +82,70 @@ def train_single_model(experiment_name, model_num, model_config, save_dir, X, y)
     try:
         model = create_model(class_name, kwargs)
         model.fit(X, y)
-    except:
-        return None
+    except Exception as e:
+        print(e)
+        return model_config, None
     
     # Save model
-    model_path = Path(save_dir) / f'{experiment_name}_{class_name}_{model_num}.pkl'
+    model_path = Path(save_dir) / f'{experiment_name}_{class_name}_{model_index}.pkl'
     with open(model_path, 'wb') as file:
         pickle.dump(model, file)
 
-    # Create model description
-    description = f'Model #{model_num}\nPath: {model_path}\nClass: {class_name}\nKeyword Args: {kwargs}'
-    return model_num, description
+    return model_config, model_path
+
+
+def train_single_model_unpack_args(args):
+    """
+    Train a single model with provided model specifications and data, 
+    using a single argument to fit the imap interface.
+
+    Arguments:
+        - args: a tuple with the arguments to a `train_single_model` call.
+    """
+    return train_single_model(*args)
+
+
+def train_multiprocessing(config, X, y, save_dir, num_processes=8):
+    """
+    Train models in parallel.
+
+    Arguments:
+        - config: configuration dictionary for this experiment (loaded from yaml)
+        - X: feature array
+        - y: label array
+        - save_dir: directory for saving models
+        - num_processes: number of different processes used for training
+
+    Returns:
+        - model_configurations: list of configurations of trained models
+        - model_paths: list of paths to saved trained models
+    """
+    experiment_name = config['experiment_name']
+    model_configurations = get_model_configurations(config)
+    num_models = len(model_configurations)
+
+    sucessful_model_configurations = []
+    sucessful_model_paths = []
+
+    pool = Pool(processes=num_processes)
+    args = zip(
+        repeat(experiment_name, num_models),
+        range(num_models), 
+        model_configurations,
+        repeat(save_dir, num_models),
+        repeat(X, num_models), 
+        repeat(y, num_models))
+
+    for model_config, model_path in tqdm.tqdm(
+        pool.imap(train_single_model_unpack_args, args),
+        total=num_models, desc='Training models'):
+
+        if model_path is not None:
+            sucessful_model_configurations.append(model_config)
+            sucessful_model_paths.append(model_path)
+
+    pool.close()
+    return sucessful_model_configurations, sucessful_model_paths
 
 
 def train(config, feature_table, label_table, discard_columns=[], save_dir='./saved_models/'):
@@ -106,7 +153,7 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
     Train models as specified by a config file.
 
     Arguments:
-        - config: configuration dictionary for this experiment  (loaded from yaml)
+        - config: configuration dictionary for this experiment (loaded from yaml)
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
         - discard_columns: names of columns to discard before building matrices
@@ -126,37 +173,23 @@ def train(config, feature_table, label_table, discard_columns=[], save_dir='./sa
     X, y = X[labeled_indices], y[labeled_indices]
 
     # Train models
-    experiment_name = config['experiment_name']
-    model_configurations = get_model_configurations(config)
-    num_models = len(model_configurations)
-    model_descriptions = [None] * num_models
-    pool = Pool(processes=5)
-    for _ in tqdm(pool.imap(train_single_model_single_arg,
-                            zip(repeat(experiment_name, num_models),
-                                list(range(num_models)), model_configurations,
-                                repeat(save_dir, num_models),
-                                repeat(X, num_models), repeat(y, num_models))),
-                  total=num_models, desc='Training models'):
-        if _ is not None:
-            model_num, model_description = _
-            model_descriptions[model_num] = model_description
-    pool.close()
+    model_configurations, model_paths = train_multiprocessing(config, X, y, save_dir)
 
-    # Filter out trainings that failed
-    success_train_indices = [i for i in range(num_models) if model_descriptions[i] is not None]
-    model_configurations = [x for i, x in enumerate(model_configurations) if i in success_train_indices]
-    model_descriptions = [x for x in model_descriptions if x is not None]
+    # Summarize models
+    model_summaries = []
+    for model_config, model_path in zip(model_configurations, model_paths):
+        model_class, model_kwargs = model_config
+        summary_dict = {
+            'model_class': model_class,
+            'model_path': str(model_path),
+            **model_kwargs,
+        }
+        model_summaries.append(summary_dict)
 
-    # Log the model descriptions
-    log_path = Path(save_dir) / f'{experiment_name}_info.txt'
-    log_text = '\n\n'.join(model_descriptions)
+    # Log model summaries
+    log_path = Path(save_dir) / f'{config["experiment_name"]}_info.txt'
+    log_text = '\n\n'.join([str(s) for s in model_summaries])
     with open(log_path, 'w') as log_file:
         log_file.writelines(log_text)
 
-    model_summary = []
-    for model_config in model_configurations:
-        summary_dict = {'model_name': model_config[0]}
-        summary_dict.update(model_config[1])
-        model_summary.append(summary_dict)
-
-    return model_summary
+    return model_summaries

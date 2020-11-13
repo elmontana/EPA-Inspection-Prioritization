@@ -1,9 +1,9 @@
 import numpy as np
-from src.models.base_model import BaseModel
+from . import base
 
 
 
-class CommonSenseBaseline(BaseModel):
+class CommonSenseBaseline(base.BaseModel):
     """
     Implement common sense baselines 
     that rank samples based on a single feature column.
@@ -45,7 +45,7 @@ class CommonSenseBaseline(BaseModel):
         probs = np.zeros_like(order).astype(float)
         probs[order] = np.linspace(0, 1, num=len(order))
 
-        # convert result to two columns
+        # Convert result to two columns
         probs = np.stack([1.0 - probs, probs], axis=-1)
 
         return probs

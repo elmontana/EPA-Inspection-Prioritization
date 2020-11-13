@@ -1,11 +1,11 @@
-from src.models.base_model import BaseModel
+from . import base
 from sklearn.preprocessing import StandardScaler
 
 
 
-class SKLearnWrapper(BaseModel):
+class SKLearnWrapper(base.BaseModel):
     """
-    Wrapper around sklearn classifiers
+    Wrapper around sklearn classifiers.
     """
 
     def __init__(self, model):
