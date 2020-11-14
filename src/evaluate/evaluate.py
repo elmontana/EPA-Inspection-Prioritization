@@ -61,8 +61,8 @@ def num_labeled_samples(y, y_pred):
     Get the number of labeled samples for a given set of model predictions
 
     Arguments:
-        - y:
-        - y_pred: an array of label predictions
+        - y: label array
+        - y_pred: array of label predictions for which ground truth is known
 
     Returns:
         - num_labeled_samples: number of labeled samples for a given set of model predictions
