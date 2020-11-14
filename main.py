@@ -228,7 +228,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
         model_metrics = test_results[result_columns[-num_metrics * num_k]]
         sorted_model_index = np.argsort(model_metrics.to_list())
         for ranking, model_index in enumerate(sorted_model_index):
-            if test_results['model_class'][model_index].startswith('src'):
+            if test_results['model_class'][model_index].endswith('CommonSenseBaseline'):
                 print(f'The model ranked #{ranking} is a baseline, skipping.')
                 continue
             else:
