@@ -106,22 +106,20 @@ feature_config:
           - 'datediff'
 
 model_config:
-  'src.models.common_sense_baseline.CommonSenseBaseline':
+  'src.models.CommonSenseBaseline':
     column: ['events_sum_penalty_amount', 'events_count_found_violation', 'events_days_since_event_date']
-  'sklearn.linear_model.LogisticRegression':
-    solver:["saga"]
-    penalty: ['l1', 'l2', 'elasticnet', 'none'] #added l1 penalty because now defaulting saga solver. lmk if doesnt work
+  'src.models.LogisticRegression':
+    penalty: ['l1', 'l2', 'elasticnet', 'none']
     C: [0.001, 0.01, 0.1, 1, 10, 100]
     max_iter: [1000]
   'sklearn.tree.DecisionTreeClassifier':
     max_depth: [1, 2, 5, 10, 50, 100, null]
     min_samples_split: [2, 5, 10, 20]
-    min_samples_leaf: [1, 2, 5, 10] #did he say remove this one ? lmao
-    min_weight_fraction_leaf: [0.0, 0.01, 0.05]
+    min_samples_leaf: [0.01, 0.05, 1, 2, 5, 10]
   'sklearn.ensemble.RandomForestClassifier':
-    n_estimators: [2, 10, 100, 1000, 5000, 10000, 20000]
+    n_estimators: [2, 10, 100, 1000]
     max_depth: [1, 2, 5, 10, 50, 100, null]
-    max_features: ["auto", "sqrt", "log2", null]
+    max_features: ['auto', 'sqrt', 'log2', null]
     min_samples_split: [2, 5, 10, 20]
     n_jobs: [5]
   'sklearn.ensemble.GradientBoostingClassifier':
@@ -130,7 +128,7 @@ model_config:
     subsample: [0.1, 1]
     min_samples_leaf: [1, 10]
     max_depth: [1, 10, null]
-    max_features: ["auto", "sqrt", "log2", null]
+    max_features: ['auto', 'sqrt', 'log2', null]
   # 'sklearn.ensemble.AdaBoostClassifier':
   #   base_estimator: [null]
   #   n_estimators: [25]

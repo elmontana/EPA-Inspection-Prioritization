@@ -1,5 +1,6 @@
+import sklearn.linear_model
+import sklearn.preprocessing
 from . import base
-from sklearn.preprocessing import StandardScaler
 
 
 
@@ -10,7 +11,7 @@ class SKLearnWrapper(base.BaseModel):
 
     def __init__(self, model):
         self.model = model
-        self.normalizer = StandardScaler()
+        self.normalizer = sklearn.preprocessing.StandardScaler()
 
         self.should_normalize_inputs = False
         if self.model_type == 'LogisticRegression':
@@ -57,3 +58,20 @@ class SKLearnWrapper(base.BaseModel):
             return self.model.feature_importances_
         else:
             return None
+
+
+
+class LogisticRegression(SKLearnWrapper):
+    """
+    Automatically decide which solver to use,
+    based on the penalty parameter that is provided.
+    """
+
+    def __init__(self, *args, **kwargs):
+        if 'penalty' in kwargs:
+            if kwargs['penalty'] in {'l1', 'elasticnet'}:
+                kwargs['solver'] = 'saga'
+
+        model = sklearn.linear_model.LogisticRegression(*args, **kwargs)
+        super().__init__(model)
+
