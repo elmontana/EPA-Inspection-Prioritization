@@ -56,12 +56,13 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
 
     return y_pred, probs
 
+
 def num_labeled_samples(y, y_pred): 
     """
     Get the number of labeled samples for a given set of model predictions
 
     Arguments:
-        - y:
+        - y: an array of ground truth labels
         - y_pred: an array of label predictions
 
     Returns:

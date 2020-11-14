@@ -201,9 +201,9 @@ def plot_results_over_time(
         plt.savefig(Path(save_dir) / f'{metric}_plot.png')
 
     # Plot number of labeled samples over time
-    num_labeled_rows = [results['num_labeled_rows'][0] for results in test_results]
+    num_labeled_samples = [results['num_labeled_samples'][0] for results in test_results]
     plt.clf()
-    plt.plot(test_dates, num_labeled_rows)
+    plt.plot(test_dates, num_labeled_samples)
     plt.xticks(test_dates)
     plt.xlabel('Evaluation Start Time')
     plt.ylabel('# of Labeled Samples')
