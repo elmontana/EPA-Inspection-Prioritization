@@ -34,7 +34,7 @@ def get_test_results_over_time(table_prefix):
 
     Arguments:
         - table_prefix: prefix of test result tables
-            (usually {user}_{version}_{exp_name}, e.g. "i_v1_test_run_201113235700")
+            (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
 
     Returns:
         - test_results: a list of pd.DataFrames, i.e. test results over time 
@@ -122,13 +122,13 @@ def plot_pr_at_k(results, x_value_type, p_prefix, r_prefix, save_prefix):
 def plot_results_over_time(
     test_results_tables_prefix, 
     metrics=['precision_score_at_600'], base_rates=[0.02],
-    figsize=(20, 10), save_dir='./'):
+    figsize=(20, 10), save_dir='./plots/'):
     """
-    Plot results of provided metrics, over time.
+    Plot test results of provided metrics, over time.
 
     Arguments:
         - test_results_tables_prefix: prefix of test result tables
-            (usually {user}_{version}_{exp_name}, e.g. "i_v1_test_run_201113235700")
+            (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
         - metrics: a list of metrics (str) to plot results for
         - base_rates: a list of base rates, one for each metric
         - figsize: the size of the plotted figure
@@ -186,8 +186,4 @@ def plot_results_over_time(
     plt.title(f'Number of Labeled Samples Over Time')
     plt.tight_layout()
     plt.savefig(Path(save_dir) / 'num_labeled_samples_plot.png')
-
-    
-
-
 

@@ -181,7 +181,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
 
     # Plot test results over time
     test_results_tables_prefix = f'{username}_{exp_version}_{exp_name}_{exp_time}'
-    plot_utils.plot_results_over_time(test_results_tables_prefix, save_dir='plots')
+    plot_utils.plot_results_over_time(test_results_tables_prefix)
 
 
 
