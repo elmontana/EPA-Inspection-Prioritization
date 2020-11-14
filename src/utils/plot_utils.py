@@ -145,7 +145,8 @@ def plot_feature_importances(feature_names, feature_importance, save_dir):
 
 def plot_results_over_time(
     test_results_tables_prefix, 
-    metrics=['precision_score_at_600'], base_rates=[0.02],
+    metrics=['precision_score_at_600', 'num_labeled_samples_at_600'],
+    base_rates=[0.02, None],
     figsize=(20, 10), save_dir='./plots/'):
     """
     Plot test results of provided metrics, over time.
@@ -174,14 +175,15 @@ def plot_results_over_time(
     plt.clf()
     plt.figure(figsize=figsize)
     for metric, base_rate in zip(metrics, base_rates):
-        for i, model_class in enumerate(model_classes):
+        metric_model_classes = model_classes.copy()
+        for i, model_class in enumerate(metric_model_classes):
             results_over_time = [df.loc[i, metric] for df in test_results]
             plt.plot(test_dates, results_over_time, c=colors[model_class])
 
         # Plot base rate
         if base_rate is not None:
             colors['Base Rate'] = 'black'
-            model_classes.append('Base Rate')
+            metric_model_classes.append('Base Rate')
             plt.plot(test_dates, [base_rate] * len(test_dates), c=colors['Base Rate'])
 
         # Label axes and set title
@@ -193,20 +195,9 @@ def plot_results_over_time(
         # Create legend
         handles = [
             matplotlib.patches.Patch(color=colors[model_class], label=model_class)
-            for model_class in set(model_classes)]
+            for model_class in set(metric_model_classes)]
         plt.legend(handles=handles)
 
         # Save plot
         plt.tight_layout()
         plt.savefig(Path(save_dir) / f'{metric}_plot.png')
-
-    # Plot number of labeled samples over time
-    num_labeled_samples = [results['num_labeled_samples'][0] for results in test_results]
-    plt.clf()
-    plt.plot(test_dates, num_labeled_samples)
-    plt.xticks(test_dates)
-    plt.xlabel('Evaluation Start Time')
-    plt.ylabel('# of Labeled Samples')
-    plt.title(f'Number of Labeled Samples Over Time')
-    plt.tight_layout()
-    plt.savefig(Path(save_dir) / 'num_labeled_samples_plot.png')

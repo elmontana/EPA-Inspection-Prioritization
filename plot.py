@@ -8,7 +8,8 @@ from pathlib import Path
 
 def plot_results_over_time(
     test_results_tables_prefix, 
-    metrics=['precision_score_at_600'], base_rates=[0.02],
+    metrics=['precision_score_at_600', 'num_labeled_samples_at_600'],
+    base_rates=[0.02, None],
     figsize=(20, 10), save_dir='./plots/'):
     """
     Plot test results of provided metrics, over time.
@@ -47,10 +48,10 @@ if __name__ == '__main__':
     # we don't have to run main.py and spend an hour training models;
     # instead just use the results that are already in the database.
     
-    print('Plotting precision recall curves ...')
-    test_results_tables_prefix = 'i_v1_test_run_201113235700'
+    print('Plotting precision over time ...')
+    test_results_tables_prefix = 'i_v1_test_run_201114232725'
     plot_results_over_time(test_results_tables_prefix)
 
-    print('Plotting precision over time ...')
-    results_table_name = 'i_v1_test_run_201114125514_160101_test_results'
+    print('Plotting precision recall curves ...')
+    results_table_name = 'i_v1_test_run_201114232348_120101_test_results'
     plot_precision_recall_curves(results_table_name)

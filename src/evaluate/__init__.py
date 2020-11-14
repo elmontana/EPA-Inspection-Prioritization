@@ -1,1 +1,2 @@
-from .evaluate import evaluate, get_predictions, num_labeled_samples
+from .evaluate import evaluate, get_predictions
+from .metrics import *
