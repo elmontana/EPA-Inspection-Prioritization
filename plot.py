@@ -1,5 +1,8 @@
+import numpy as np
 import src.utils.data_utils as data_utils
 import src.utils.plot_utils as plot_utils
+
+from pathlib import Path
 
 
 
@@ -18,30 +21,24 @@ def plot_results_over_time(
         - figsize: the size of the plotted figure
         - save_dir: directory where plots should be saved
     """
-    return plot_utils.plot_results_over_time(
+    plot_utils.plot_results_over_time(
         test_results_tables_prefix, 
         metrics=metrics, base_rates=base_rates, save_dir=save_dir)
 
 
-def plot_metric_at_k(results_table_name, save_dir='./plots/'):
+def plot_precision_recall_curves(results_table_name, save_dir='./plots/'):
     """
+    Plot precision recall curves for each model in a set of results.
+
     Arguments: 
         - results_table_name: name of results table
         - save_dir: directory where plots should be saved
     """
-    results_table_name = f'results.{results_table_name.rsplit(".", 1)[-1]}'
-    results_df = data_utils.get_table(results_table_name)
-    raise NotImplementedError
+    if not results_table_name.startswith('results.'):
+        results_table_name = f'results.{results_table_name}'
 
-
-def plot_pr_at_k(results_table_name, save_dir='./plots/'):
-    """
-    Arguments: 
-        - results_table_name: name of results table
-        - save_dir: directory where plots should be saved
-    """
     results_df = data_utils.get_table(results_table_name)
-    raise NotImplementedError
+    plot_utils.plot_pr_at_k(results_df, Path(save_dir) / 'curve')
 
 
 
@@ -50,8 +47,10 @@ if __name__ == '__main__':
     # we don't have to run main.py and spend an hour training models;
     # instead just use the results that are already in the database.
     
-    # test_results_tables_prefix = 'i_v1_test_run_201113235700'
-    # plot_results_over_time(test_results_tables_prefix)
+    print('Plotting precision recall curves ...')
+    test_results_tables_prefix = 'i_v1_test_run_201113235700'
+    plot_results_over_time(test_results_tables_prefix)
 
-    # results_table_name = 'i_v1_test_run_201113235700_120101_test_results'
-    # plot_pr_at_k(results_table_name)
+    print('Plotting precision over time ...')
+    results_table_name = 'i_v1_test_run_201114125514_160101_test_results'
+    plot_precision_recall_curves(results_table_name)

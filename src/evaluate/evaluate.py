@@ -192,7 +192,7 @@ def evaluate(
         X, y, labeled_indices, metrics, k_values)
 
     # Convert results to dataframe table
-    results_columns = [f'{metric.__name__}_at_{k}' for metric in metrics for k in k_values]
+    results_columns = [f'{metric.__name__}_at_{k}' for k in k_values for metric in metrics]
     results = pd.DataFrame({
         **pd.DataFrame(model_summaries),
         'model_path': model_paths,
@@ -204,22 +204,5 @@ def evaluate(
     experiment_name = config['experiment_name']
     results_path = Path(log_dir) / f'{experiment_name}_results.csv'
     results.to_csv(results_path)
-
-    # Plot metric@k curves
-    for metric in metrics:
-        save_path = Path(log_dir) / f'{experiment_name}_{metric.__name__}_at_k.pdf'
-        plot_metric_at_k(
-            results,
-            prefix=f'{metric.__name__}_at_',
-            x_value_type='float',
-            save_path=save_path)
-
-    # Plot pr@k for all models
-    metrics_include_precision = 'precision_score' in {metric.__name__ for metric in metrics}
-    metrics_include_recall = 'recall_score' in {metric.__name__ for metric in metrics}
-    if metrics_include_precision and metrics_include_recall:
-        plot_pr_at_k(
-            results, 'float', 'precision_score_at_', 'recall_score_at_',
-            Path(log_dir) / experiment_name)
 
     return results

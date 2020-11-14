@@ -136,10 +136,12 @@ def train_multiprocessing(config, X, y, save_dir, num_processes=8):
         repeat(X, num_models), 
         repeat(y, num_models))
 
-    for model_config, model_path in tqdm.tqdm(
+    training_loop = tqdm.tqdm(
         pool.imap(train_single_model_unpack_args, args),
-        total=num_models, desc='Training models'):
+        total=num_models, desc='Training models')
 
+    for model_config, model_path in training_loop:
+        training_loop.set_description(f'Training {model_config[0]}')
         if model_path is not None:
             sucessful_model_configurations.append(model_config)
             sucessful_model_paths.append(model_path)

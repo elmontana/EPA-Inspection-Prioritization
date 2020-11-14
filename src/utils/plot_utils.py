@@ -2,6 +2,7 @@ import matplotlib
 import numpy as np
 import os
 import pandas as pd
+import tqdm
 
 from datetime import datetime
 from matplotlib import pyplot as plt
@@ -89,12 +90,14 @@ def plot_metric_at_k(results, prefix, x_value_type='float', save_path=None):
     plt.savefig(save_path)
 
 
-def plot_pr_at_k(results, x_value_type, p_prefix, r_prefix, save_prefix):
+def plot_pr_at_k(
+    results, save_prefix, 
+    p_prefix='precision_score_at_', r_prefix='recall_score_at_', x_value_type='float'):
     # get x axis values from dataframe
     p_xs, p_x = get_x_axis_values(results.columns, p_prefix, x_value_type)
     r_xs, r_x = get_x_axis_values(results.columns, r_prefix, x_value_type)
 
-    for index, row in results.iterrows():
+    for index, row in tqdm.tqdm(results.iterrows(), total=results.shape[0]):
         xlabel = 'k' if x_value_type == 'float' else 'n'
         p_values = [float(row[p_prefix + s]) for s in p_xs]
         r_values = [float(row[r_prefix + s]) for s in r_xs]
@@ -113,9 +116,10 @@ def plot_pr_at_k(results, x_value_type, p_prefix, r_prefix, save_prefix):
         ax2.plot(r_x, r_values, color=color)
         ax2.tick_params(axis='y', labelcolor=color)
         ax2.set_ylim(0.0, 1.0)
-
+        ax2.set_title(f'Precision Recall Curve for {row["model_class"]} {index}')
+        
         fig.tight_layout()
-        plt.savefig(str(save_prefix) + f'_pr_at_k_model_{index}.jpg', dpi=300)
+        plt.savefig(f'{save_prefix}_pr_at_k_model_{index}.png')
         plt.close(fig)
 
 
