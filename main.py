@@ -4,14 +4,19 @@ import glob
 import os
 import tqdm
 import yaml
+import pickle
+import numpy as np
+import pandas as pd
 
+import src.utils.data_utils as data_utils
 import src.utils.date_utils as date_utils
 import src.utils.sql_utils as sql_utils
+import src.utils.plot_utils as plot_utils
 
 from src.preprocessing.run import main as run_preprocess
 from src.model_prep.cohorts import prepare_cohort, merge_tables
 from src.train import train
-from src.evaluate import evaluate
+from src.evaluate import evaluate, get_predictions
 
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning)
@@ -65,10 +70,46 @@ def parse_temporal_config(temporal_config):
             'feature_start_time': test_start_time,
             'feature_end_time': test_start_time + feature_duration,
             'label_start_time': test_start_time + feature_duration,
-            'label_end_time': test_start_time+ feature_duration + label_duration
+            'label_end_time': test_start_time + feature_duration + label_duration
         })
 
     return train_splits, test_splits
+
+
+
+def compute_crosstab_for_model(model, X, y, feature_names, save_prefix, metric, k):
+    """
+    Computes crosstab for a given model.
+
+    Arguments:
+        model: object for the model.
+        X: features to compute crosstab on.
+        y: labels to compute crosstab on.
+        feature_names: a list of string corresponding to feature names.
+        save_prefix: prefix for saving to database.
+        metric: the metric to be used for prediction.
+        k: the k value to be used for prediction.
+    """
+    assert type(k) == int, 'Crosstab only supports integer k value now.'
+    assert len(feature_names) == X.shape[1], 'Feature name and X do not match.'
+    y_pred, probs = get_predictions(model, X, k=k)
+    feature_means, feature_stds = X.mean(axis=0), X.std(axis=0)
+    pos_pred_means = X[y_pred == 1].mean(axis=0)
+    neg_pred_means = X[y_pred == 0].mean(axis=0)
+    pos_pred_mean_z = (pos_pred_means - feature_means) / (feature_stds + 1e-12)
+    neg_pred_mean_z = (neg_pred_means - feature_means) / (feature_stds + 1e-12)
+    z_diff = np.abs(pos_pred_mean_z - neg_pred_mean_z)
+    z_diff_desc = np.argsort(z_diff)[::-1]
+    num_features = len(feature_names)
+    crosstab_data = {
+        'feature_name': [feature_names[z_diff_desc[i]] for i in range(num_features)],
+        'positive_means': pos_pred_means[z_diff_desc],
+        'negative_means': neg_pred_means[z_diff_desc],
+        'normalized_difference': z_diff[z_diff_desc],
+    }
+    crosstab_df = pd.DataFrame(crosstab_data)
+    crosstab_df.to_sql(save_prefix, sql_utils.get_connection(),
+                       schema='predictions', index=True)
 
 
 
@@ -142,6 +183,11 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
         train_label_table = f'{experiment_table_prefix}_train_labels'
         merge_tables(train_label_splits, train_label_table)
 
+        # Delete intermediate cohort tables
+        for i in range(len(train_dates)):
+            cohort_table_name = f'{experiment_table_prefix}_split{i}_cohort'
+            sql_utils.run_sql_from_string(conn, f'drop table {cohort_table_name};')
+
         # Train models as specified by our experiment configuration
         print('Training ...')
         model_configurations = train(
@@ -169,6 +215,34 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
             save_preds_to_db=True,
             save_prefix=f'{prefix}_test',
             log_dir=test_save_dir)
+
+        # Use the first metric to find the best model
+        num_metrics = len(config['eval_config']['metrics'])
+        num_k = len(config['eval_config']['k'])
+        result_columns = test_results.columns
+        model_metrics = test_results[result_columns[-num_metrics * num_k]]
+        sorted_model_index = np.argsort(model_metrics.to_list())
+        for ranking, model_index in enumerate(sorted_model_index):
+            if test_results['model_class'][model_index].startswith('src'):
+                print(f'The model ranked #{ranking} is a baseline, skipping.')
+                continue
+            else:
+                best_model_path = test_results['model_path'][model_index]
+                with open(best_model_path, 'rb') as f:
+                    model = pickle.load(f)
+                feature_importance = model.feature_importance()
+                print(f'Plotting feature importance for model #{model_index}.')
+                break
+        feature_names = sql_utils.get_table_columns(conn, train_feature_table)[2:]
+        plot_utils.plot_feature_importances(feature_names, feature_importance,
+                                            test_save_dir)
+
+        # Calculate crosstab for the model
+        X, y = data_utils.get_data(test_feature_table, test_label_table)
+        k = config['eval_config']['k'][0]
+        compute_crosstab_for_model(model, X, y, feature_names,
+                                   f'{prefix}_best_model_crosstab_at_{k}',
+                                   config['eval_config']['metrics'][0], k)
 
         # Save results to database
         train_results_name = f'{prefix}_train_results'

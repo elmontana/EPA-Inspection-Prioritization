@@ -31,7 +31,7 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
         - y_pred: an array of label predictions
         - probs: the probabilities for each prediction
     """
-    
+
     # Get probabilities
     probs = model.predict_proba(X.to_numpy(copy=True), columns=list(X.columns))[:, 1]
 
@@ -58,7 +58,7 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
 
 
 def evaluate_single_model(
-    model_path, model_index, save_preds_to_db, save_prefix, 
+    model_path, model_index, save_preds_to_db, save_prefix,
     metrics, k_values, X, y, labeled_indices):
     """
     Evaluate a single model with provided model specifications and data.
@@ -100,7 +100,7 @@ def evaluate_single_model(
 
 def evaluate_single_model_unpack_args(args):
     """
-    Evaluate a single model with provided model specifications and data, 
+    Evaluate a single model with provided model specifications and data,
     using a single argument to fit the imap interface.
 
     Arguments:
@@ -110,7 +110,7 @@ def evaluate_single_model_unpack_args(args):
 
 
 def evaluate_multiprocessing(
-    model_paths, save_preds_to_db, save_prefix, 
+    model_paths, save_preds_to_db, save_prefix,
     X, y, labeled_indices,
     metrics, k_values,
     num_processes=8):
@@ -130,13 +130,13 @@ def evaluate_multiprocessing(
     num_models = len(model_paths)
     pool = Pool(processes=num_processes)
     args = zip(
-        model_paths, 
+        model_paths,
         range(num_models),
         repeat(save_preds_to_db, num_models),
         repeat(save_prefix, num_models),
         repeat(metrics, num_models),
         repeat(k_values, num_models),
-        repeat(X, num_models), 
+        repeat(X, num_models),
         repeat(y, num_models),
         repeat(labeled_indices, num_models))
 
@@ -188,7 +188,7 @@ def evaluate(
     metrics = [getattr(importlib.import_module(m), c) for (m, c) in metrics_str]
     k_values = config['eval_config']['k']
     results = evaluate_multiprocessing(
-        model_paths, save_preds_to_db, save_prefix, 
+        model_paths, save_preds_to_db, save_prefix,
         X, y, labeled_indices, metrics, k_values)
 
     # Convert results to dataframe table
@@ -203,7 +203,7 @@ def evaluate(
     # Save results to csv file
     experiment_name = config['experiment_name']
     results_path = Path(log_dir) / f'{experiment_name}_results.csv'
-    results.to_csv(results_path)    
+    results.to_csv(results_path)
 
     # Plot metric@k curves
     for metric in metrics:
@@ -211,7 +211,7 @@ def evaluate(
         plot_metric_at_k(
             results,
             prefix=f'{metric.__name__}_at_',
-            x_value_type='float', 
+            x_value_type='float',
             save_path=save_path)
 
     # Plot pr@k for all models

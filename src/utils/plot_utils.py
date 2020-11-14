@@ -69,3 +69,23 @@ def plot_pr_at_k(results, x_value_type, p_prefix, r_prefix, save_prefix):
         fig.tight_layout()
         plt.savefig(str(save_prefix) + f'_pr_at_k_model_{index}.jpg', dpi=300)
         plt.close(fig)
+
+
+def plot_feature_importances(feature_names, feature_importance, save_dir):
+    assert len(feature_names) == len(feature_importance)
+    y_pos = np.arange(len(feature_names))
+    order = np.argsort(feature_importance)[::-1]
+    feature_importance = feature_importance[order]
+    feature_names = [feature_names[order[i]] for i in range(len(order))]
+
+    fig, ax = plt.subplots()
+    ax.barh(y_pos, feature_importance, align='center')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(feature_names)
+    ax.invert_yaxis()
+    ax.set_xlabel('Feature Importance')
+    ax.set_ylabel('Feature Name')
+    fig.set_size_inches(11.0, 8.5)
+    plt.tight_layout()
+    fig.savefig(os.path.join(save_dir, 'feature_importance.pdf'))
+    plt.close(fig)

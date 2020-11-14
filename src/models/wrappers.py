@@ -48,12 +48,12 @@ class SKLearnWrapper(base.BaseModel):
 
     def feature_importance(self, *args, **kwargs):
         if self.model_type == 'LogisticRegression':
-            pass
+            return np.abs(self.model.coef_[0])
         elif self.model_type == 'DecisionTreeClassifier':
-            pass
+            return self.model.feature_importances_
         elif self.model_type == 'RandomForestClassifier':
-            pass
+            return self.model.feature_importances_
         elif self.model_type == 'GradientBoostingClassifier':
-            pass
-
-        raise NotImplementedError
+            return self.model.feature_importances_
+        else:
+            return None
