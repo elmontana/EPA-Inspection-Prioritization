@@ -56,6 +56,19 @@ def get_predictions(model, X, k=None, columns=None, save_db_table=None):
 
     return y_pred, probs
 
+def num_labeled_samples(y, y_pred): 
+    """
+    Get the number of labeled samples for a given set of model predictions
+
+    Arguments:
+        - y:
+        - y_pred: an array of label predictions
+
+    Returns:
+        - num_labeled_samples: number of labeled samples for a given set of model predictions
+    """
+    return np.sum(y_pred)
+
 
 def evaluate_single_model(
     model_path, model_index, save_preds_to_db, save_prefix,
