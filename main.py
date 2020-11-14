@@ -10,6 +10,7 @@ import pandas as pd
 
 import src.utils.data_utils as data_utils
 import src.utils.date_utils as date_utils
+import src.utils.plot_utils as plot_utils
 import src.utils.sql_utils as sql_utils
 import src.utils.plot_utils as plot_utils
 
@@ -150,7 +151,8 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
     train_dates_list, test_dates_list = parse_temporal_config(config['temporal_config'])
 
     # Training and evaluation
-    experiment_loop = tqdm.tqdm(list(zip(train_dates_list, test_dates_list)), desc='\nExperiment Repeats')
+    test_results_over_time = []
+    experiment_loop = tqdm.tqdm(list(zip(train_dates_list, test_dates_list)), desc='Experiment Repeats')
     for train_dates, test_dates in experiment_loop:
         split_time_abbr = date_utils.date_to_string(test_dates['label_start_time'])
         split_time_abbr = split_time_abbr.replace('-', '')[2:]
@@ -190,7 +192,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
 
         # Train models as specified by our experiment configuration
         print('Training ...')
-        model_configurations = train(
+        model_summaries = train(
             config,
             train_feature_table, train_label_table,
             discard_columns=['split'],
@@ -202,19 +204,20 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
         train_results = evaluate(
             config,
             train_feature_table, train_label_table,
-            model_paths, model_configurations,
+            model_paths, model_summaries,
             discard_columns=['split'],
             log_dir=train_save_dir)
 
         # Evaluate our models on the test data
-        print('\nEvaluating on test data ...')
+        print('Evaluating on test data ...')
         test_results = evaluate(
             config,
             test_feature_table, test_label_table,
-            model_paths, model_configurations,
+            model_paths, model_summaries,
             save_preds_to_db=True,
             save_prefix=f'{prefix}_test',
             log_dir=test_save_dir)
+        test_results_over_time.append(test_results)
 
         # Use the first metric to find the best model
         num_metrics = len(config['eval_config']['metrics'])
@@ -250,7 +253,11 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
         train_results.to_sql(train_results_name, conn, schema='results')
         test_results.to_sql(test_results_name, conn, schema='results')
 
+    # Plot test results over time
+    test_results_tables_prefix = f'{username}_{exp_version}_{exp_name}_{exp_time}'
+    plot_utils.plot_results_over_time(test_results_tables_prefix)
+
 
 
 if __name__ == '__main__':
-    main()
+    main()    

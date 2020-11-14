@@ -1,8 +1,18 @@
-import os
+import matplotlib
 import numpy as np
+import os
 import pandas as pd
-from matplotlib import pyplot as plt
 
+from datetime import datetime
+from matplotlib import pyplot as plt
+from pathlib import Path
+
+from .sql_utils import get_connection
+from .data_utils import get_table
+
+
+
+### Helper Functions
 
 def get_x_axis_values(columns, prefix, x_value_type):
     column_names = [s for s in list(columns) if s.startswith(prefix)]
@@ -17,6 +27,44 @@ def get_x_axis_values(columns, prefix, x_value_type):
         raise ValueError('x_value type must be int or float.')
     return x_values_str, x_values
 
+
+def get_test_results_over_time(table_prefix):
+    """
+    Get data from test results over time for a single experiment run.
+
+    Arguments:
+        - table_prefix: prefix of test result tables
+            (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
+
+    Returns:
+        - test_results: a list of pd.DataFrames, i.e. test results over time 
+        - test_dates: list of test dates corresponding to test results
+        - model_classes: a list of model classes (should be same across all data frames)
+    """
+
+    # Get names of test result tables
+    query = f"select table_name from information_schema.tables where table_schema = 'results'"
+    results_tables = pd.read_sql(query, con=get_connection()).to_numpy(copy=True).flatten()
+    test_result_tables = [
+        table for table in results_tables 
+        if table.startswith(table_prefix) and table.endswith('test_results')]
+
+    # Get corresponding data frames
+    test_results = [get_table(f'results.{table}') for table in test_result_tables]
+
+    # Get test dates & sort results by date
+    test_dates = [int(f'20{table.split("_")[-3][:2]}') for table in test_result_tables]
+    test_dates, test_results = zip(*sorted(zip(test_dates, test_results)))
+
+    # Get names of model classes from data frames
+    model_classes = test_results[0]['model_class'].to_numpy(copy=True)
+    model_classes = [model_class.rsplit('.', 1)[-1] for model_class in model_classes]
+
+    return test_results, test_dates, model_classes
+
+
+
+### Plotting
 
 def plot_metric_at_k(results, prefix, x_value_type='float', save_path=None):
     # clear figure
@@ -89,3 +137,72 @@ def plot_feature_importances(feature_names, feature_importance, save_dir):
     plt.tight_layout()
     fig.savefig(os.path.join(save_dir, 'feature_importance.pdf'))
     plt.close(fig)
+
+
+def plot_results_over_time(
+    test_results_tables_prefix, 
+    metrics=['precision_score_at_600'], base_rates=[0.02],
+    figsize=(20, 10), save_dir='./plots/'):
+    """
+    Plot test results of provided metrics, over time.
+
+    Arguments:
+        - test_results_tables_prefix: prefix of test result tables
+            (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
+        - metrics: a list of metrics (str) to plot results for
+        - base_rates: a list of base rates, one for each metric
+        - figsize: the size of the plotted figure
+        - save_dir: directory where plots should be saved
+    """
+
+    # Create save directory if not exists
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Get test results, test dates, and model classes
+    test_results, test_dates, model_classes = get_test_results_over_time(test_results_tables_prefix)
+
+    # Define a distinct color for each unique model class
+    colors = plt.cm.rainbow(np.linspace(0, 1, len(set(model_classes))))
+    colors = {model_class: color for model_class, color in zip(set(model_classes), colors)}
+
+    # Plot results over time for each metric
+    plt.clf()
+    plt.figure(figsize=figsize)
+    for metric, base_rate in zip(metrics, base_rates):
+        for i, model_class in enumerate(model_classes):
+            results_over_time = [df.loc[i, metric] for df in test_results]
+            plt.plot(test_dates, results_over_time, c=colors[model_class])
+
+        # Plot base rate
+        if base_rate is not None:
+            colors['Base Rate'] = 'black'
+            model_classes.append('Base Rate')
+            plt.plot(test_dates, [base_rate] * len(test_dates), c=colors['Base Rate'])
+
+        # Label axes and set title
+        plt.xticks(test_dates)
+        plt.xlabel('Evaluation Start Time')
+        plt.ylabel(metric)
+        plt.title(f'Model Group {metric} Over Time')
+
+        # Create legend
+        handles = [
+            matplotlib.patches.Patch(color=colors[model_class], label=model_class)
+            for model_class in set(model_classes)]
+        plt.legend(handles=handles)
+
+        # Save plot
+        plt.tight_layout()
+        plt.savefig(Path(save_dir) / f'{metric}_plot.png')
+
+    # Plot number of labeled samples over time
+    num_labeled_rows = [results['num_labeled_rows'][0] for results in test_results]
+    plt.clf()
+    plt.plot(test_dates, num_labeled_rows)
+    plt.xticks(test_dates)
+    plt.xlabel('Evaluation Start Time')
+    plt.ylabel('# of Labeled Samples')
+    plt.title(f'Number of Labeled Samples Over Time')
+    plt.tight_layout()
+    plt.savefig(Path(save_dir) / 'num_labeled_samples_plot.png')

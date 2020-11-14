@@ -153,7 +153,7 @@ def evaluate_multiprocessing(
 
 def evaluate(
     config, feature_table, label_table,
-    model_paths, model_configs,
+    model_paths, model_summaries,
     save_preds_to_db=False, save_prefix='',
     discard_columns=[], log_dir='./results/'):
     """
@@ -164,7 +164,7 @@ def evaluate(
         - feature_table: name of table containing test features
         - label_table: name of table containing label features
         - model_paths: list of paths to the models being tested
-        - model_configs: list of dictionaries containing model configurations
+        - model_summaries: list of model summary dictionaries
         - save_preds_to_db: whether or not to save predictions to database
         - save_prefix: string prefix for any tables created
         - discard_columns: names of columns to discard before building matrices
@@ -194,7 +194,7 @@ def evaluate(
     # Convert results to dataframe table
     results_columns = [f'{metric.__name__}_at_{k}' for metric in metrics for k in k_values]
     results = pd.DataFrame({
-        **pd.DataFrame(model_configs),
+        **pd.DataFrame(model_summaries),
         'model_path': model_paths,
         'num_labeled_rows': [int(labeled_indices.sum())] * len(model_paths),
         **pd.DataFrame(np.array(results).round(4), columns=results_columns),
