@@ -60,7 +60,6 @@ def get_test_results_over_time(table_prefix):
     model_classes = test_results[0]['model_class'].to_numpy(copy=True)
     model_classes = [model_class.rsplit('.', 1)[-1] for model_class in model_classes]
 
-
     return test_results, test_dates, model_classes
 
 
@@ -122,7 +121,8 @@ def plot_pr_at_k(results, x_value_type, p_prefix, r_prefix, save_prefix):
 
 def plot_results_over_time(
     test_results_tables_prefix, 
-    metrics=['precision_score_at_600'], figsize=(20, 10), save_dir='./'):
+    metrics=['precision_score_at_600'], base_rates=[0.02],
+    figsize=(20, 10), save_dir='./'):
     """
     Plot results of provided metrics, over time.
 
@@ -130,6 +130,7 @@ def plot_results_over_time(
         - test_results_tables_prefix: prefix of test result tables
             (usually {user}_{version}_{exp_name}, e.g. "i_v1_test_run_201113235700")
         - metrics: a list of metrics (str) to plot results for
+        - base_rates: a list of base rates, one for each metric
         - figsize: the size of the plotted figure
         - save_dir: directory where plots should be saved
     """
@@ -148,10 +149,16 @@ def plot_results_over_time(
     # Plot results over time for each metric
     plt.clf()
     plt.figure(figsize=figsize)
-    for metric in metrics:
+    for metric, base_rate in zip(metrics, base_rates):
         for i, model_class in enumerate(model_classes):
             results_over_time = [df.loc[i, metric] for df in test_results]
             plt.plot(test_dates, results_over_time, c=colors[model_class])
+
+        # Plot base rate
+        if base_rate is not None:
+            colors['Base Rate'] = 'black'
+            model_classes.append('Base Rate')
+            plt.plot(test_dates, [base_rate] * len(test_dates), c=colors['Base Rate'])
 
         # Label axes and set title
         plt.xticks(test_dates)
@@ -166,6 +173,7 @@ def plot_results_over_time(
         plt.legend(handles=handles)
 
         # Save plot
+        plt.tight_layout()
         plt.savefig(Path(save_dir) / f'{metric}_plot.png')
 
     # Plot number of labeled samples over time
@@ -176,6 +184,7 @@ def plot_results_over_time(
     plt.xlabel('Evaluation Start Time')
     plt.ylabel('# of Labeled Samples')
     plt.title(f'Number of Labeled Samples Over Time')
+    plt.tight_layout()
     plt.savefig(Path(save_dir) / 'num_labeled_samples_plot.png')
 
     
