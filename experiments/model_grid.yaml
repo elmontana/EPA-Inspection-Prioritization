@@ -116,8 +116,8 @@ model_config:
   'sklearn.tree.DecisionTreeClassifier':
     max_depth: [1, 2, 5, 10, 50, 100, null]
     min_samples_split: [2, 5, 10, 20]
-    min_samples_leaf: [1, 2, 5, 10] #did he say remove this one ? lmao
-    min_weight_fraction_leaf: [0.0, 0.01, 0.05]
+    #min_samples_leaf: [1, 2, 5, 10] removing this per kit's suggestion
+    min_weight_fraction_leaf: [0.0, 0.01, 0.05] #leaving this after removing 10% and 20$ per kit's suggestion
   'sklearn.ensemble.RandomForestClassifier':
     n_estimators: [2, 10, 100, 1000, 5000, 10000, 20000]
     max_depth: [1, 2, 5, 10, 50, 100, null]
@@ -129,7 +129,7 @@ model_config:
     learning_rate: [0.01, 0.1, 0.5]
     subsample: [0.1, 1]
     min_samples_leaf: [1, 10]
-    max_depth: [1, 10, null]
+    max_depth: [1, 5, 10] #picking smaller max_depths per kit's suggestion
     max_features: ["auto", "sqrt", "log2", null]
   # 'sklearn.ensemble.AdaBoostClassifier':
   #   base_estimator: [null]
