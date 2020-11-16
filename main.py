@@ -232,6 +232,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
                 print(f'The model ranked #{ranking} is a baseline, skipping.')
                 continue
             else:
+                plot_utils.plot_pr_at_k(test_results.iloc[model_index], "best_p_at_600")
                 best_model_path = test_results['model_path'][model_index]
                 with open(best_model_path, 'rb') as f:
                     model = pickle.load(f)
