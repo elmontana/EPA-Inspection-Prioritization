@@ -117,7 +117,7 @@ model_config:
     max_depth: [1, 2, 5, 10, 50, 100, null]
     min_samples_split: [2, 5, 10, 20]
     #min_samples_leaf: [1, 2, 5, 10] removing this per kit's suggestion
-    min_weight_fraction_leaf: [0.0, 0.01, 0.05] # leaving this after removing 10% and 20% per kit's suggestion
+    min_weight_fraction_leaf: [0.0, 0.01, 0.025, 0.05] # leaving this after removing 10% and 20% per kit's suggestion
   'sklearn.ensemble.RandomForestClassifier':
     n_estimators: [2, 10, 100, 1000]
     max_depth: [1, 2, 5, 10, 50, 100, null]
