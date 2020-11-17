@@ -107,4 +107,4 @@ if __name__ == '__main__':
 
     print('Plotting precision recall curves for best 5 models over time ...')
     results_table_name = 'i_v1_test_run_201114232348_120101_test_results'
-    plot_precision_recall_curves(results_table_name, n=5)
+    plot_best_precision_recall_curves(results_table_name, n=5)
