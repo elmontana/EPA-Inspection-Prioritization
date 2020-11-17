@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from pathlib import Path
 
 from .sql_utils import get_connection
-from .data_utils import get_table
+from .data_utils import get_test_results_over_time
 
 
 
@@ -27,41 +27,6 @@ def get_x_axis_values(columns, prefix, x_value_type):
     else:
         raise ValueError('x_value type must be int or float.')
     return x_values_str, x_values
-
-
-def get_test_results_over_time(table_prefix):
-    """
-    Get data from test results over time for a single experiment run.
-
-    Arguments:
-        - table_prefix: prefix of test result tables
-            (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
-
-    Returns:
-        - test_results: a list of pd.DataFrames, i.e. test results over time 
-        - test_dates: list of test dates corresponding to test results
-        - model_classes: a list of model classes (should be same across all data frames)
-    """
-
-    # Get names of test result tables
-    query = f"select table_name from information_schema.tables where table_schema = 'results'"
-    results_tables = pd.read_sql(query, con=get_connection()).to_numpy(copy=True).flatten()
-    test_result_tables = [
-        table for table in results_tables 
-        if table.startswith(table_prefix) and table.endswith('test_results')]
-
-    # Get corresponding data frames
-    test_results = [get_table(f'results.{table}') for table in test_result_tables]
-
-    # Get test dates & sort results by date
-    test_dates = [int(f'20{table.split("_")[-3][:2]}') for table in test_result_tables]
-    test_dates, test_results = zip(*sorted(zip(test_dates, test_results)))
-
-    # Get names of model classes from data frames
-    model_classes = test_results[0]['model_class'].to_numpy(copy=True)
-    model_classes = [model_class.rsplit('.', 1)[-1] for model_class in model_classes]
-
-    return test_results, test_dates, model_classes
 
 
 
@@ -145,9 +110,10 @@ def plot_feature_importances(feature_names, feature_importance, save_dir):
 
 
 def plot_results_over_time(
-    test_results_tables_prefix, 
+    test_results_tables_prefix,
     metrics=['precision_score_at_600', 'num_labeled_samples_at_600'],
     base_rates=[0.02, None],
+    model_idx=None,
     figsize=(20, 10), save_dir='./plots/'):
     """
     Plot test results of provided metrics, over time.
@@ -157,6 +123,7 @@ def plot_results_over_time(
             (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
         - metrics: a list of metrics (str) to plot results for
         - base_rates: a list of base rates, one for each metric
+        - model_idx: a list of model indices to plot
         - figsize: the size of the plotted figure
         - save_dir: directory where plots should be saved
     """
@@ -168,6 +135,11 @@ def plot_results_over_time(
     # Get test results, test dates, and model classes
     test_results, test_dates, model_classes = get_test_results_over_time(test_results_tables_prefix)
 
+    # Filter model indices
+    if model_idx is not None:
+        test_results = [df.iloc[model_idx] for df in test_results]
+        model_classes = [model_classes[i] for i in model_idx]
+
     # Define a distinct color for each unique model class
     colors = plt.cm.rainbow(np.linspace(0, 1, len(set(model_classes))))
     colors = {model_class: color for model_class, color in zip(set(model_classes), colors)}
@@ -176,9 +148,10 @@ def plot_results_over_time(
     plt.clf()
     plt.figure(figsize=figsize)
     for metric, base_rate in zip(metrics, base_rates):
+        metric_idx = test_results[0].columns.get_loc(metric)
         metric_model_classes = model_classes.copy()
         for i, model_class in enumerate(metric_model_classes):
-            results_over_time = [df.loc[i, metric] for df in test_results]
+            results_over_time = [df.iloc[i, metric_idx] for df in test_results]
             plt.plot(test_dates, results_over_time, c=colors[model_class])
 
         # Plot base rate
@@ -201,4 +174,7 @@ def plot_results_over_time(
 
         # Save plot
         plt.tight_layout()
-        plt.savefig(Path(save_dir) / f'{metric}_plot.png')
+        if model_idx is None:
+            plt.savefig(Path(save_dir) / f'{metric}_plot.png')
+        else:
+            plt.savefig(Path(save_dir) / f'{metric}_plot_{len(model_idx)}_models.png')

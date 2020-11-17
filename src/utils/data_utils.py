@@ -43,3 +43,38 @@ def get_table(table_name, columns=None):
     query = f'select {column_string} from {table_name}'
     df = pd.read_sql(query, con=get_connection())
     return df
+
+
+def get_test_results_over_time(table_prefix):
+    """
+    Get data from test results over time for a single experiment run.
+
+    Arguments:
+        - table_prefix: prefix of test result tables
+            (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
+
+    Returns:
+        - test_results: a list of pd.DataFrames, i.e. test results over time 
+        - test_dates: list of test dates corresponding to test results
+        - model_classes: a list of model classes (should be same across all result data frames)
+    """
+
+    # Get names of test result tables
+    query = f"select table_name from information_schema.tables where table_schema = 'results'"
+    results_tables = pd.read_sql(query, con=get_connection()).to_numpy(copy=True).flatten()
+    test_result_tables = [
+        table for table in results_tables 
+        if table.startswith(table_prefix) and table.endswith('test_results')]
+
+    # Get corresponding data frames
+    test_results = [get_table(f'results.{table}') for table in test_result_tables]
+
+    # Get test dates & sort results by date
+    test_dates = [int(f'20{table.split("_")[-3][:2]}') for table in test_result_tables]
+    test_dates, test_results = zip(*sorted(zip(test_dates, test_results)))
+
+    # Get names of model classes from data frames
+    model_classes = test_results[0]['model_class'].to_numpy(copy=True)
+    model_classes = [model_class.rsplit('.', 1)[-1] for model_class in model_classes]
+
+    return test_results, test_dates, model_classes
