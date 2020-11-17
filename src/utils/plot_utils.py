@@ -109,6 +109,7 @@ def plot_pr_at_k(
         ax1.set_ylabel('Precision', color=color)
         ax1.plot(p_x, p_values, color=color)
         ax1.tick_params(axis='y', labelcolor=color)
+        ax1.set_ylim(0.0, 0.25)
 
         ax2 = ax1.twinx()
         color = 'tab:blue'
