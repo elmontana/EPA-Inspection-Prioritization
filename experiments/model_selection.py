@@ -33,4 +33,4 @@ def best_model_per_metric(test_results_over_time):
 
 	sorted_indices_max_min = np.argsort(max_min_precision_score)
 
-	return [sorted_indices_avg[-1], sorted_indices_max_min[-1]]
+	return {sorted_indices_avg[-1]:"highest_avg_precision_at_600", sorted_indices_max_min[-1]:"highest_min_precision_at_600"}
