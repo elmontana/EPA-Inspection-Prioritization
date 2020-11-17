@@ -1,9 +1,18 @@
 import re
 import numpy as np
+import src.utils.plot_utils as utils
 
 # def extract_year(model_path):
 # 	x,y= re.split("^.*model_grid_\d*_", model_path)
 # 	return "20"+y[0:2]
+
+def test_best_model_selection():
+	"""
+	tests function below
+	"""
+	test_results_over_time = utils.get_test_results_over_time("i_v1_model_grid_201115015235")
+	print(best_model_per_metric(test_results_over_time))
+	
 
 
 
