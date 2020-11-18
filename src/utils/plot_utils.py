@@ -139,7 +139,7 @@ def plot_results_over_time(
     # Filter model indices
     if model_idx is not None:
         test_results = [df.iloc[model_idx] for df in test_results]
-        model_classes = [model_classes[i] for i in model_idx]
+        model_classes = [f'{model_classes[i]}_{i}' for i in model_idx]
 
     random.shuffle(model_classes)
 
