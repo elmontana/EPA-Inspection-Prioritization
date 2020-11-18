@@ -2,6 +2,7 @@ import matplotlib
 import numpy as np
 import os
 import pandas as pd
+import random
 import tqdm
 
 from datetime import datetime
@@ -74,7 +75,7 @@ def plot_pr_at_k(
         ax1.set_ylabel('Precision', color=color)
         ax1.plot(p_x, p_values, color=color)
         ax1.tick_params(axis='y', labelcolor=color)
-        ax1.set_ylim(0.0, 0.25)
+        ax1.set_ylim(0.0, 0.5)
 
         ax2 = ax1.twinx()
         color = 'tab:blue'
@@ -139,6 +140,8 @@ def plot_results_over_time(
     if model_idx is not None:
         test_results = [df.iloc[model_idx] for df in test_results]
         model_classes = [model_classes[i] for i in model_idx]
+
+    random.shuffle(model_classes)
 
     # Define a distinct color for each unique model class
     colors = plt.cm.rainbow(np.linspace(0, 1, len(set(model_classes))))

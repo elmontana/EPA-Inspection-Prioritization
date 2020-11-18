@@ -70,12 +70,15 @@ def plot_precision_recall_curves(results_table_name, save_dir='./plots/'):
     plot_utils.plot_pr_at_k(results_df, Path(save_dir) / 'curve')
 
 
-def plot_best_precision_recall_curves(results_table_name, n=5, save_dir='./plots/'):
+def plot_best_precision_recall_curves(
+    results_table_name, 
+    metric='precision_score_at_600', n=5, save_dir='./plots/'):
     """
     Plot precision recall curves for the best models.
 
     Arguments: 
         - results_table_name: name of results table
+        - metric: the metric to use for selecting best models
         - n: number of models to plot curves for
         - save_dir: directory where plots should be saved
     """
@@ -98,13 +101,13 @@ if __name__ == '__main__':
     # instead just use the results that are already in the database.
     
     print('Plotting precision over time ...')
-    test_results_tables_prefix = 'i_v1_test_run_201114232725'
+    test_results_tables_prefix = 'i_v1_model_grid_201115015235'
     plot_results_over_time(test_results_tables_prefix)
 
     print('Plotting precision for best 5 models over time ...')
-    test_results_tables_prefix = 'i_v1_test_run_201114232725'
+    test_results_tables_prefix = 'i_v1_model_grid_201115015235'
     plot_best_results_over_time(test_results_tables_prefix, n=5)
 
     print('Plotting precision recall curves for best 5 models over time ...')
-    results_table_name = 'i_v1_test_run_201114232348_120101_test_results'
-    plot_best_precision_recall_curves(results_table_name, n=5)
+    results_table_name = 'i_v1_model_grid_201115015235_160101_test_results'
+    plot_precision_recall_curves(results_table_name)
