@@ -242,11 +242,6 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
         feature_names = sql_utils.get_table_columns(conn, train_feature_table)[2:]
         plot_utils.plot_feature_importances(feature_names, feature_importance,
                                             test_save_dir)
-          
-        # Plot PR-K curves for best models
-        best_models = best_model_per_metric(results_over_time)
-        for key,value in best_models:
-          plot_utils.plot_pr_at_k(test_results.iloc[key], value)
 
         # Calculate crosstab for the model
         X, y = data_utils.get_data(test_feature_table, test_label_table)
