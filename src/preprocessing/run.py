@@ -3,7 +3,7 @@ import glob
 import sqlalchemy
 import tqdm
 
-from .load_acs import load_acs_data
+from .load_acs import load_acs_data, load_density_data
 from ..utils.sql_utils import run_sql_from_file
 
 
@@ -30,6 +30,10 @@ def run_data_loading(conn, mode, prefix):
         survey = 'acs5'
         year = 2013
         load_acs_data(conn, variables, variable_names, table_name, survey, year)
+
+        # load population density data
+        density_table_name = f'{prefix}_pop_density_data'
+        load_density_data(conn, density_table_name)
 
 
 def run_step(conn, sql_files, prefix):
