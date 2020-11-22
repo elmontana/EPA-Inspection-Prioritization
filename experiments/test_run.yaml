@@ -67,7 +67,7 @@ feature_config:
     from_table: 'semantic.{prefix}_acs'
     table_type: 'entity'
     imputation: 'mean_noflag'
-    columns: ['zip_population', 'county_population']
+    columns: ['zip_population', 'county_population', 'zip_density_sq_miles']
   -
     prefix: 'reporting'
     from_table: 'semantic.{prefix}_reporting'
