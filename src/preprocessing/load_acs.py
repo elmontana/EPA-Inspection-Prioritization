@@ -40,6 +40,7 @@ def load_density_data(conn, table_name):
     # Create table
     df = pd.read_csv(data_filename)
     df.columns = ['zip', 'population', 'area_sq_miles', 'density_sq_miles']
+    df['zip'] = df['zip'].apply(lambda zip: f'{zip:05d}')
     df.to_sql(table_name, conn, schema='data_exploration', index=False)
 
     return df

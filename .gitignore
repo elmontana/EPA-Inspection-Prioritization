@@ -4,3 +4,4 @@ logs/
 plots/
 .git
 **/__pycache__/
+*.csv
