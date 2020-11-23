@@ -82,23 +82,21 @@ feature_config:
     knowledge_date_column_name: 'knowledge_date'
 
     imputation:
-      count: 'zero'
-      sum: 'zero_noflag'
+      sum: 'zero'
       datediff: 'inf'
 
     aggregates:
       -
         column_name: 'found_violation'
         metrics:
-          - 'count'
+          - 'sum'
       -
         column_name: 'citizen_complaint'
         metrics:
-          - 'count'
+          - 'sum'
       -
         column_name: 'penalty_amount'
         metrics:
-          - 'count'
           - 'sum'
       -
         column_name: 'event_date'
