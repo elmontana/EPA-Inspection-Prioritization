@@ -106,30 +106,31 @@ feature_config:
           - 'datediff'
 
 model_config:
-  'src.models.common_sense_baseline.CommonSenseBaseline':
+  'src.models.CommonSenseBaseline':
     column: ['events_sum_penalty_amount', 'events_count_found_violation', 'events_days_since_event_date']
-  'sklearn.linear_model.LogisticRegression':
-    penalty: ['l2', 'elasticnet', 'none']
+  'src.models.LogisticRegression':
+    penalty: ['l1', 'l2', 'elasticnet', 'none']
     C: [0.001, 0.01, 0.1, 1, 10, 100]
+    l1_ratio: [0.5]
     max_iter: [1000]
   'sklearn.tree.DecisionTreeClassifier':
     max_depth: [1, 2, 5, 10, 50, 100, null]
     min_samples_split: [2, 5, 10, 20]
-    min_samples_leaf: [1, 2, 5, 10]
-    min_weight_fraction_leaf: [0.0, 0.01, 0.05, 0.1, 0.2]
+    #min_samples_leaf: [1, 2, 5, 10] removing this per kit's suggestion
+    min_weight_fraction_leaf: [0.0, 0.01, 0.025, 0.05] # leaving this after removing 10% and 20% per kit's suggestion
   'sklearn.ensemble.RandomForestClassifier':
-    n_estimators: [2, 10, 100, 1000, 5000, 10000, 20000]
+    n_estimators: [2, 10, 100, 1000]
     max_depth: [1, 2, 5, 10, 50, 100, null]
-    max_features: ["auto", "sqrt", "log2", null]
+    max_features: ['auto', 'sqrt', 'log2', null]
     min_samples_split: [2, 5, 10, 20]
-    n_jobs: [5]
+    #n_jobs: [5]
   'sklearn.ensemble.GradientBoostingClassifier':
-    n_estimators: [2, 10, 100, 1000, 5000, 10000, 20000]
+    n_estimators: [2, 10, 100, 1000]
     learning_rate: [0.01, 0.1, 0.5]
     subsample: [0.1, 1]
     min_samples_leaf: [1, 10]
-    max_depth: [1, 10, 100, null]
-    max_features: ["auto", "sqrt", "log2", null]
+    max_depth: [1, 5, 10] # picking smaller max_depths per kit's suggestion
+    max_features: ['auto', 'sqrt', 'log2', null]
   # 'sklearn.ensemble.AdaBoostClassifier':
   #   base_estimator: [null]
   #   n_estimators: [25]
@@ -139,4 +140,5 @@ eval_config:
   metrics:
     - 'sklearn.metrics.precision_score'
     - 'sklearn.metrics.recall_score'
+    - 'src.evaluate.metrics.num_labeled_samples'
   k: [600, 0.01, 0.02, 0.03, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]

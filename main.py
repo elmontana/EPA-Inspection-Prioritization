@@ -12,12 +12,11 @@ import src.utils.data_utils as data_utils
 import src.utils.date_utils as date_utils
 import src.utils.plot_utils as plot_utils
 import src.utils.sql_utils as sql_utils
-import src.utils.plot_utils as plot_utils
 
 from src.preprocessing.run import main as run_preprocess
 from src.model_prep.cohorts import prepare_cohort, merge_tables
 from src.train import train
-from src.evaluate import evaluate, get_predictions
+from src.evaluate import evaluate, get_predictions, model_selection
 
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning)
@@ -137,6 +136,9 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
     exp_time = date_utils.get_current_time_string()[2:]
     username = getpass.getuser()[0]
 
+    terminal_width = int(os.popen('stty size', 'r').read().split()[1])
+    print(f'Running Experiment: {username}_{exp_version}_{exp_name}_{exp_time}\n{"-" * terminal_width}\n')
+
     # Preprocessing
     preprocessing_prefix = config['preprocessing_config']['prefix']
     if not run_preprocessing:
@@ -165,7 +167,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
             os.getcwd(), log_dir, prefix, 'test_' + exp_time)
 
         # Prepare cohort as specified by our experiment configuration
-        print('Preparing cohorts ...')
+        tqdm.tqdm.write('\nPreparing cohorts ...')
         train_feature_splits, train_label_splits = [], []
         for i, train_dates_aod in enumerate(train_dates):
             train_feature_table, train_label_table = prepare_cohort(
@@ -191,7 +193,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
             sql_utils.run_sql_from_string(conn, f'drop table {cohort_table_name};')
 
         # Train models as specified by our experiment configuration
-        print('Training ...')
+        tqdm.tqdm.write('Training ...')
         model_summaries = train(
             config,
             train_feature_table, train_label_table,
@@ -199,7 +201,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
             save_dir=train_save_dir)
 
         # Evaluate our models on the training data
-        print('Evaluating on training data ...')
+        tqdm.tqdm.write('Evaluating on training data ...')
         model_paths = glob.glob(f'{train_save_dir}/*.pkl')
         train_results = evaluate(
             config,
@@ -209,12 +211,12 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
             log_dir=train_save_dir)
 
         # Evaluate our models on the test data
-        print('Evaluating on test data ...')
+        tqdm.tqdm.write('Evaluating on test data ...')
         test_results = evaluate(
             config,
             test_feature_table, test_label_table,
             model_paths, model_summaries,
-            save_preds_to_db=True,
+            save_preds_to_db=False,
             save_prefix=f'{prefix}_test',
             log_dir=test_save_dir)
         test_results_over_time.append(test_results)
@@ -226,10 +228,11 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
         model_metrics = test_results[result_columns[-num_metrics * num_k]]
         sorted_model_index = np.argsort(model_metrics.to_list())
         for ranking, model_index in enumerate(sorted_model_index):
-            if test_results['model_class'][model_index].startswith('src'):
+            if test_results['model_class'][model_index].endswith('CommonSenseBaseline'):
                 print(f'The model ranked #{ranking} is a baseline, skipping.')
                 continue
             else:
+                plot_utils.plot_pr_at_k(test_results.iloc[model_index], "best_p_at_600")
                 best_model_path = test_results['model_path'][model_index]
                 with open(best_model_path, 'rb') as f:
                     model = pickle.load(f)

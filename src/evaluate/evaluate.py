@@ -15,46 +15,47 @@ from ..utils.sql_utils import get_connection
 
 
 
-def get_predictions(model, X, k=None, columns=None, save_db_table=None):
+def get_predictions(model, X, k_values=[], columns=None, pred_table_name=None):
     """
     Get predictions from a model.
 
     Arguments:
         - model: the trained model
-        - X (np.ndarray): an array of features
-        - k (float or int): the total number of positive labels we want to predict
-            If provided as a float within (0.0, 1.0), k is the total proportion of positive labels
-        - columns (list): list of column names of the features
-        - save_db_table (str): name of table in which to save predictions
+        - X: an array of features
+        - k_values: a list of different k values;
+            each k value is the total number of positive labels we want to predict;
+            if provided as a float within (0.0, 1.0), k is the total proportion of positive labels
+        - columns: list of column names of the features
+        - pred_table_name: name of table in which to save predictions
 
     Returns:
-        - y_pred: an array of label predictions
-        - probs: the probabilities for each prediction
+        - y_preds: a (N x K) array of label predictions at each k value
+        - probs: the prediction probabilities
     """
 
     # Get probabilities
     probs = model.predict_proba(X.to_numpy(copy=True), columns=list(X.columns))[:, 1]
 
-    if k is None:
-        y_pred = probs > 0.5
-        return y_pred, probs
+    # Calculate predictions at each k value
+    y_preds = np.zeros((len(probs), len(k_values)))
+    for i, k in enumerate(k_values):
+        if isinstance(k, float):
+            # Convert k from proportion to an integer number of positive labels
+            k = int(float(len(probs)) * k)
 
-    if isinstance(k, float):
-        # Convert k from proportion to an integer number of positive labels
-        k = int(float(len(probs)) * k)
-
-    # Create an array of label predictions
-    top_k_indices = probs.argsort()[-k:][::-1]
-    y_pred = np.zeros(len(probs))
-    y_pred[top_k_indices] = 1
+        # Make positive predictions for the top k probabilities
+        top_k_indices = probs.argsort()[-k:][::-1]
+        y_preds[top_k_indices, i] = 1
 
     # Save predictions to database
-    if save_db_table is not None:
-        data = np.stack([y_pred, probs], axis=-1)
-        data = pd.DataFrame(index=X.index, data=data, columns=['Prediction', 'Probability'])
-        data.to_sql(save_db_table, get_connection(), schema='predictions', index=True)
+    if pred_table_name is not None:
+        data = np.column_stack([y_preds, probs])
+        data = pd.DataFrame(
+            index=X.index, data=data, 
+            columns=[*['Prediction at k={k}' for k in k_values], 'Probability'])
+        data.to_sql(pred_table_name, get_connection(), schema='predictions', index=True)
 
-    return y_pred, probs
+    return y_preds, probs
 
 
 def evaluate_single_model(
@@ -76,24 +77,26 @@ def evaluate_single_model(
 
     Returns:
         - model_index: index for the model
-        - model_results: a flattened list of model results,
-            for each metric, at each k-value
+        - model_results: an (M x K) array of model results, for each metric, at each k-value
     """
 
     # Load saved model
     with open(model_path, 'rb') as file:
         model = pickle.load(file)
 
-    # Evaluate predictions
-    model_results = []
-    for k in k_values:
-        save_db_table = f'{save_prefix}_model_{model_index}_pred_at_{k}' if save_preds_to_db else None
-        y_pred, probs = get_predictions(model, X, k=k, save_db_table=save_db_table)
+    # Get predictions
+    pred_table_name = f'{save_prefix}_model_{model_index}' if save_preds_to_db else None
+    y_preds, probs = get_predictions(model, X, k_values=k_values, pred_table_name=pred_table_name)
 
-        # Calculate metric on rows with labels
-        y_pred_filtered = y_pred[labeled_indices]
-        y_filtered = y.to_numpy(copy=True)[labeled_indices]
-        model_results += [metric(y_filtered, y_pred_filtered) for metric in metrics]
+    # Filter labels
+    y_preds_filtered = y_preds[labeled_indices]
+    y_filtered = y.to_numpy(copy=True)[labeled_indices]
+
+    # Calculate metrics for each k value
+    model_results = np.zeros((len(metrics), len(k_values)))
+    for i, metric in enumerate(metrics):
+        for j in range(len(k_values)):
+            model_results[i, j] = metric(y_filtered, y_preds_filtered[:, j])
 
     return model_index, model_results
 
@@ -145,7 +148,7 @@ def evaluate_multiprocessing(
         pool.imap(evaluate_single_model_unpack_args, args),
         total=num_models, desc='Evaluating models'):
 
-        results[model_index] = model_results
+        results[model_index] = model_results.flatten()
 
     pool.close()
     return results
@@ -204,22 +207,5 @@ def evaluate(
     experiment_name = config['experiment_name']
     results_path = Path(log_dir) / f'{experiment_name}_results.csv'
     results.to_csv(results_path)
-
-    # Plot metric@k curves
-    for metric in metrics:
-        save_path = Path(log_dir) / f'{experiment_name}_{metric.__name__}_at_k.pdf'
-        plot_metric_at_k(
-            results,
-            prefix=f'{metric.__name__}_at_',
-            x_value_type='float',
-            save_path=save_path)
-
-    # Plot pr@k for all models
-    metrics_include_precision = 'precision_score' in {metric.__name__ for metric in metrics}
-    metrics_include_recall = 'recall_score' in {metric.__name__ for metric in metrics}
-    if metrics_include_precision and metrics_include_recall:
-        plot_pr_at_k(
-            results, 'float', 'precision_score_at_', 'recall_score_at_',
-            Path(log_dir) / experiment_name)
 
     return results

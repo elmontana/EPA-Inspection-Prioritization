@@ -1,6 +1,8 @@
 database.yaml
 venv/
 logs/
+plots/
 .git
 **/__pycache__/
 plots/
+*.csv

@@ -67,7 +67,7 @@ feature_config:
     from_table: 'semantic.{prefix}_acs'
     table_type: 'entity'
     imputation: 'mean_noflag'
-    columns: ['zip_population', 'county_population']
+    columns: ['zip_population', 'county_population', 'zip_density_sq_miles']
   -
     prefix: 'reporting'
     from_table: 'semantic.{prefix}_reporting'
@@ -106,9 +106,9 @@ feature_config:
           - 'datediff'
 
 model_config:
-  'src.models.common_sense_baseline.CommonSenseBaseline':
+  'src.models.CommonSenseBaseline':
     column: ['events_sum_penalty_amount', 'events_count_found_violation', 'events_days_since_event_date']
-  'sklearn.linear_model.LogisticRegression':
+  'src.models.LogisticRegression':
     penalty: ['l2', 'none']
     C: [0.01, 0.1, 1, 10]
     max_iter: [1000]
@@ -122,7 +122,6 @@ model_config:
     max_depth: [10, null]
     max_features: ['sqrt', null]
     min_samples_split: [2]
-    n_jobs: [5]
   'sklearn.ensemble.GradientBoostingClassifier':
     n_estimators: [100]
     learning_rate: [0.1, 0.5]
@@ -135,4 +134,5 @@ eval_config:
   metrics:
     - 'sklearn.metrics.precision_score'
     - 'sklearn.metrics.recall_score'
-  k: [600]
+    - 'src.evaluate.metrics.num_labeled_samples'
+  k: [600, 0.01, 0.02, 0.03, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
