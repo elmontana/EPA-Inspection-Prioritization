@@ -105,7 +105,7 @@ def train_single_model_unpack_args(args):
     return train_single_model(*args)
 
 
-def train_multiprocessing(config, X, y, save_dir, num_processes=8):
+def train_multiprocessing(config, X, y, save_dir, num_processes=4):
     """
     Train models in parallel.
 

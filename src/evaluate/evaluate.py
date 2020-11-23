@@ -113,7 +113,7 @@ def evaluate_multiprocessing(
     model_paths, save_preds_to_db, save_prefix,
     X, y, labeled_indices,
     metrics, k_values,
-    num_processes=8):
+    num_processes=4):
     """
     Evaluate models in parallel.
 

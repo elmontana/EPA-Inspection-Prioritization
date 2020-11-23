@@ -1,0 +1,120 @@
+version: 'v1'
+
+experiment_name: 'interp'
+
+temporal_config:
+  # duration for aggregating feature and labels for both trainig and testing
+  feature_duration: '10 years'
+  label_duration: '1 year'
+
+  feature_aod_interval: '1 year'
+
+  # start time for getting features
+  # we assume that labels come immediately after features
+  # this means that the training data comes in (fst, fst + fd)
+  # testing data comes in (fst + fd, fst + fd + ld)
+  feature_start_time: '2001-01-01'
+
+  # interval and number of times to roll forward training and testing data
+  # for cross validating on different train and test set combinations
+  # this means that the above two intervals are going to be repeated
+  # to generate num_train_repeat (train, test) splits
+  train_repeat_interval: '1 year'
+  num_train_repeat: 5
+
+cohort_config:
+  # query to obtain the entities for a train-test split
+  # as_of_date is a placeholder set to the last date of the split
+  query: |
+    select distinct entity_id
+    from semantic.{prefix}_events
+    where event_date <= '{as_of_date}'::date
+    order by entity_id
+
+preprocessing_config:
+  prefix: 'v0'
+  sql:
+    -
+      name: 'setup'
+      files:
+        - 'setup_clean.sql'
+        - 'setup_semantic.sql'
+    -
+      name: 'clean'
+      files:
+        - 'clean_rcra.sql'
+        - 'clean_acs.sql'
+    -
+      name: 'semantic'
+      files:
+        - 'semantic_events.sql'
+        - 'semantic_labels.sql'
+        - 'semantic_reporting.sql'
+        - 'semantic_acs.sql'
+
+label_config:
+  query: |
+    select entity_id, max(label) as label
+    from semantic.{prefix}_labels
+    where event_date >= '{start_date}' and event_date <= '{end_date}'
+    and knowledge_date <= '{end_date}'
+    group by entity_id
+    order by entity_id
+
+feature_config:
+  -
+    prefix: 'acs'
+    from_table: 'semantic.{prefix}_acs'
+    table_type: 'entity'
+    imputation: 'mean_noflag'
+    columns: ['zip_population', 'county_population']
+  -
+    prefix: 'reporting'
+    from_table: 'semantic.{prefix}_reporting'
+    table_type: 'entity'
+    imputation: 'zero_noflag'
+    event_date_column_name: 'event_date'
+  -
+    prefix: 'events'
+    from_table: 'semantic.{prefix}_events'
+    table_type: 'event'
+    event_date_column_name: 'event_date'
+    knowledge_date_column_name: 'knowledge_date'
+
+    imputation:
+      count: 'zero'
+      sum: 'zero_noflag'
+      datediff: 'inf'
+
+    aggregates:
+      -
+        column_name: 'found_violation'
+        metrics:
+          - 'count'
+      -
+        column_name: 'citizen_complaint'
+        metrics:
+          - 'count'
+      -
+        column_name: 'penalty_amount'
+        metrics:
+          - 'count'
+          - 'sum'
+      -
+        column_name: 'event_date'
+        metrics:
+          - 'datediff'
+
+model_config:
+  'sklearn.ensemble.RandomForestClassifier':
+    n_estimators: [10]
+    max_depth: [10]
+    max_features: [null]
+    min_samples_split: [10]
+    n_jobs: [5]
+
+eval_config:
+  metrics:
+    - 'sklearn.metrics.precision_score'
+    - 'sklearn.metrics.recall_score'
+  k: [600, 0.01, 0.02, 0.03, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
