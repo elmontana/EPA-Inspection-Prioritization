@@ -156,9 +156,15 @@ def plot_results_over_time(
 
         # Plot base rate
         if base_rate is not None:
-            colors['Base Rate'] = 'black'
-            metric_model_classes.append('Base Rate')
-            plt.plot(test_dates, [base_rate] * len(test_dates), c=colors['Base Rate'])
+            if isinstance(base_rate, str):
+                base_rate_idx = test_results[0].columns.get_loc(base_rate)
+                for i, model_class in enumerate(metric_model_classes):
+                    results_over_time = [df.iloc[i, base_rate_idx] for df in test_results]
+                    plt.plot(test_dates, results_over_time, c=colors['Base Rate'])
+            else:
+                colors['Base Rate'] = 'black'
+                metric_model_classes.append('Base Rate')
+                plt.plot(test_dates, [base_rate] * len(test_dates), c=colors['Base Rate'])
 
         # Label axes and set title
         plt.xticks(test_dates)
