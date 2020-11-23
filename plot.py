@@ -10,7 +10,7 @@ from src.evaluate.model_selection import find_best_models
 def plot_results_over_time(
     test_results_tables_prefix, 
     metrics=['precision_score_at_600', 'num_labeled_samples_at_600'],
-    base_rates=[0.02, None],
+    base_rates=['precision_score_at_1.0', None],
     figsize=(20, 10), save_dir='./plots/'):
     """
     Plot test results of provided metrics, over time.
@@ -33,7 +33,7 @@ def plot_best_results_over_time(
     metric='precision_score_at_600',
     other_metrics=['num_labeled_samples_at_600'],
     n=5,
-    base_rates=[0.02, None],
+    base_rates=['precision_score_at_1.0', None],
     figsize=(20, 10), save_dir='./plots/'):
     """
     Plot test results of best models at the provided metric, over time.
