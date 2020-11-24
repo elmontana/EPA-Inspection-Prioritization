@@ -157,7 +157,7 @@ def evaluate_multiprocessing(
 def evaluate(
     config, feature_table, label_table,
     model_paths, model_summaries,
-    save_preds_to_db=False, save_prefix='',
+    save_preds_to_db=True, save_prefix='',
     discard_columns=[], log_dir='./results/'):
     """
     Test models on validation data and save the results to a csv file.
