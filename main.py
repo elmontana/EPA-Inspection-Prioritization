@@ -201,8 +201,8 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
             save_dir=train_save_dir)
 
         # Evaluate our models on the training data
-        tqdm.tqdm.write('Evaluating on training data ...')
         model_paths = glob.glob(f'{train_save_dir}/*.pkl')
+        tqdm.tqdm.write('Evaluating on training data ...')
         train_results = evaluate(
             config,
             train_feature_table, train_label_table,
@@ -216,7 +216,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
             config,
             test_feature_table, test_label_table,
             model_paths, model_summaries,
-            save_preds_to_db=False,
+            save_preds_to_db=True,
             save_prefix=f'{prefix}_test',
             log_dir=test_save_dir)
         test_results_over_time.append(test_results)
@@ -263,4 +263,4 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
 
 
 if __name__ == '__main__':
-    main()    
+    main()

@@ -51,9 +51,11 @@ def get_predictions(model, X, k_values=[], columns=None, pred_table_name=None):
     if pred_table_name is not None:
         data = np.column_stack([y_preds, probs])
         data = pd.DataFrame(
-            index=X.index, data=data, 
-            columns=[*['Prediction at k={k}' for k in k_values], 'Probability'])
-        data.to_sql(pred_table_name, get_connection(), schema='predictions', index=True)
+            index=X.index, data=data,
+            columns=[*[f'prediction_at_{k}' for k in k_values], 'probability'])
+        data = data.reset_index()
+        data.to_sql(pred_table_name, get_connection(), schema='predictions',
+                    index=False, if_exists='replace')
 
     return y_preds, probs
 
@@ -157,7 +159,7 @@ def evaluate_multiprocessing(
 def evaluate(
     config, feature_table, label_table,
     model_paths, model_summaries,
-    save_preds_to_db=True, save_prefix='',
+    save_preds_to_db=False, save_prefix='',
     discard_columns=[], log_dir='./results/'):
     """
     Test models on validation data and save the results to a csv file.

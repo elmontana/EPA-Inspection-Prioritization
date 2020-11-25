@@ -38,7 +38,7 @@ def create_model(model_class_name, model_kwargs):
 
 def get_model_configurations(config):
     """
-    Get the set of all model configurations specified by the config. 
+    Get the set of all model configurations specified by the config.
     For each model keyword argument, the config specifies a list of potential values.
     This function enumerates all possible combinations.
 
@@ -85,7 +85,7 @@ def train_single_model(experiment_name, model_index, model_config, save_dir, X, 
     except Exception as e:
         print(e)
         return model_config, None
-    
+
     # Save model
     model_path = Path(save_dir) / f'{experiment_name}_{class_name}_{model_index}.pkl'
     with open(model_path, 'wb') as file:
@@ -96,7 +96,7 @@ def train_single_model(experiment_name, model_index, model_config, save_dir, X, 
 
 def train_single_model_unpack_args(args):
     """
-    Train a single model with provided model specifications and data, 
+    Train a single model with provided model specifications and data,
     using a single argument to fit the imap interface.
 
     Arguments:
@@ -130,10 +130,10 @@ def train_multiprocessing(config, X, y, save_dir, num_processes=4):
     pool = Pool(processes=num_processes)
     args = zip(
         repeat(experiment_name, num_models),
-        range(num_models), 
+        range(num_models),
         model_configurations,
         repeat(save_dir, num_models),
-        repeat(X, num_models), 
+        repeat(X, num_models),
         repeat(y, num_models))
 
     training_loop = tqdm.tqdm(

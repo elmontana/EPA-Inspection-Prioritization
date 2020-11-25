@@ -105,7 +105,7 @@ feature_config:
 
 model_config:
   'src.models.CommonSenseBaseline':
-    column: ['events_sum_penalty_amount', 'events_count_found_violation', 'events_days_since_event_date']
+    column: ['events_sum_penalty_amount', 'events_sum_found_violation', 'events_days_since_event_date']
   'src.models.LogisticRegression':
     penalty: ['l1', 'l2', 'elasticnet', 'none']
     C: [0.001, 0.01, 0.1, 1, 10, 100]
