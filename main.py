@@ -16,7 +16,7 @@ import src.utils.sql_utils as sql_utils
 from src.preprocessing.run import main as run_preprocess
 from src.model_prep.cohorts import prepare_cohort, merge_tables
 from src.train import train
-from src.evaluate import evaluate, get_predictions, model_selection
+from src.evaluate import evaluate, get_predictions
 
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning)
