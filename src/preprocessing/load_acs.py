@@ -68,7 +68,7 @@ def load_acs_data(conn, variables, variable_names, table_name, survey, year):
     countydata = censusdata.download(survey, year,
                                      censusdata.censusgeo([('state','36'), ('county','*')]),
                                      inc_vars, key='db8c95da0a4bf1d0f0b43c6e66158daaef578790')
-    countydata['Mean_County_Income'] = countydata.mean(axis=1)
+    countydata['mean_county_income'] = countydata.mean(axis=1)
     countydata['county'] = [idx.geo[1][1] for idx in countydata.index]
     countydata.reset_index(inplace=True)
     countydata = countydata.drop(['index'], axis=1)
@@ -99,7 +99,7 @@ def load_acs_data(conn, variables, variable_names, table_name, survey, year):
     data = data.drop(['index'], axis=1)
     
     # merge county income data with other ACS data
-    data = data.merge(countydata[['county','Mean_County_Income']],'left', on = 'county', copy = False)
+    data = data.merge(countydata[['county','mean_county_income']],'left', on = 'county', copy = False)
 
     
     # load on database
