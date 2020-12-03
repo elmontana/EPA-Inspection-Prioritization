@@ -146,27 +146,40 @@ def plot_results_over_time(
     # Define a distinct color for each unique model class
     colors = plt.cm.rainbow(np.linspace(0, 1, len(set(model_classes))))
     colors = {model_class: color for model_class, color in zip(set(model_classes), colors)}
+    colors['Base Rate'] = 'black'
 
     # Plot results over time for each metric
-    plt.clf()
-    plt.figure(figsize=figsize)
     for metric, base_rate in zip(metrics, base_rates):
+        plt.clf()
+        plt.figure(figsize=figsize)
+
         metric_idx = test_results[0].columns.get_loc(metric)
         metric_model_classes = model_classes.copy()
+
+        # Plot all ML models
         for i, model_class in enumerate(metric_model_classes):
-            results_over_time = [df.iloc[i, metric_idx] for df in test_results]
-            plt.plot(test_dates, results_over_time, c=colors[model_class])
+            if 'CommonSenseBaseline' not in model_class:
+                results_over_time = [df.iloc[i, metric_idx] for df in test_results]
+                plt.plot(test_dates, results_over_time, c=colors[model_class])
+
+        # Plot common sense baselines
+        for i, model_class in enumerate(metric_model_classes):
+            if 'CommonSenseBaseline' in model_class:
+                results_over_time = [df.iloc[i, metric_idx] for df in test_results]
+                plt.plot(test_dates, results_over_time, c=colors[model_class])
 
         # Plot base rate
         if base_rate is not None:
+            metric_model_classes.append('Base Rate')
             if isinstance(base_rate, str):
                 base_rate_idx = test_results[0].columns.get_loc(base_rate)
-                for i, model_class in enumerate(metric_model_classes):
-                    results_over_time = [df.iloc[i, base_rate_idx] for df in test_results]
-                    plt.plot(test_dates, results_over_time, c=colors['Base Rate'])
+                results_over_time = [df.iloc[0, base_rate_idx] for df in test_results]
+                if metric == 'num_labeled_samples_at_600':
+                    idx = test_results[0].columns.get_loc('num_labeled_rows')
+                    scale = 600 / np.array([df.iloc[0, idx] for df in test_results])
+                    results_over_time = scale * np.array(results_over_time)
+                plt.plot(test_dates, results_over_time, c=colors['Base Rate'])
             else:
-                colors['Base Rate'] = 'black'
-                metric_model_classes.append('Base Rate')
                 plt.plot(test_dates, [base_rate] * len(test_dates), c=colors['Base Rate'])
 
         # Label axes and set title

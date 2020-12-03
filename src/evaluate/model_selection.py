@@ -23,18 +23,34 @@ def find_best_models(table_prefix, metric='precision_score_at_600', sort_by='min
     metrics = list(test_results[0].columns)
     assert metric in metrics
 
-    # Create results matrix for our metric of shape (model, time)
-    results_matrix = np.zeros((test_results[0].shape[0], len(test_results)))
-    for i, result in enumerate(test_results):
-        results_matrix[:, i] = result[metric].to_numpy()
+    filter_metric = f'num_labeled_samples_at_{metric.rsplit("_", 1)[-1]}'
+    assert filter_metric in metrics
 
-    # Calculate mininum-values for our metric over time
-    if sort_by == 'min':
-        values = results_matrix.min(axis=-1)
-    elif sort_by == 'average':
-        values = results_matrix.mean(axis=-1)
-    elif sort_by == 'last':
-        values = results_matrix[:, -1]
+
+    def get_maximin_values(my_metric):
+        # Create results matrix for our metric of shape (model, time)
+        results_matrix = np.zeros((test_results[0].shape[0], len(test_results)))
+        for i, result in enumerate(test_results):
+            results_matrix[:, i] = result[my_metric].to_numpy()
+
+        # Calculate mininum-values for our metric over time
+        if sort_by == 'min':
+            values = results_matrix.min(axis=-1)
+        elif sort_by == 'average':
+            values = results_matrix.mean(axis=-1)
+        elif sort_by == 'last':
+            values = results_matrix[:, -1]
+
+        return values
+
+
+    values = get_maximin_values(metric)
+
+    # Filter out values where num_labeled_samples is below some threshold
+    num_labeled_samples_min_threshold = 75
+    num_labeled_samples_values = get_maximin_values(filter_metric)
+    keep_idx = num_labeled_samples_values > num_labeled_samples_min_threshold
+    values = values[keep_idx]
 
     # Find the indices of the best models
     best_model_idx = values.argsort()[::-1]
