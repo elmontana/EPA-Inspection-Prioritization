@@ -60,24 +60,36 @@ def load_acs_data(conn, variables, variable_names, table_name, survey, year):
     """
     # drop table if already exists
     run_sql_from_string(conn, f'drop table if exists data_exploration.{table_name}')
+    
+    # mean income variables
+    inc_vars = ['B19081_001E','B19081_002E','B19081_003E','B19081_004E','B19081_005E']
+    
+    # get county income data
+    countydata = censusdata.download(survey, year,
+                                     censusdata.censusgeo([('state','36'), ('county','*')]),
+                                     inc_vars, key='db8c95da0a4bf1d0f0b43c6e66158daaef578790')
+    countydata['Mean_County_Income'] = countydata.mean(axis=1)
+    countydata['county'] = [idx.geo[1][1] for idx in countydata.index]
+    countydata.reset_index(inplace=True)
+    countydata = countydata.drop(['index'], axis=1)
 
     # get data from census
     census_geo = [('state','36'), ('county','*')]
     counties = censusdata.geographies(censusdata.censusgeo(census_geo),
-        survey, year,
-        key='db8c95da0a4bf1d0f0b43c6e66158daaef578790')
+                                      survey, year,
+                                      key='db8c95da0a4bf1d0f0b43c6e66158daaef578790')
     countylist = list(counties.values())
-
+    
     for county in tqdm(countylist, desc='Load ACS data'):
         params = county.params()
         if county == countylist[0]:
             data = censusdata.download(survey, year,
-                censusdata.censusgeo([params[0], params[1], ('block group', '*')]),
-                variables, key='db8c95da0a4bf1d0f0b43c6e66158daaef578790')
+                                       censusdata.censusgeo([params[0], params[1], ('block group', '*')]),
+                                       variables, key='db8c95da0a4bf1d0f0b43c6e66158daaef578790')
         else:
             data = data.append(censusdata.download(survey, year,
-                censusdata.censusgeo([params[0], params[1], ('block group', '*')]),
-                variables, key='db8c95da0a4bf1d0f0b43c6e66158daaef578790'))
+                                                   censusdata.censusgeo([params[0], params[1], ('block group', '*')]),
+                                                   variables, key='db8c95da0a4bf1d0f0b43c6e66158daaef578790'))
 
     # transform data
     data.rename(columns=variable_names, inplace=True)
@@ -85,6 +97,10 @@ def load_acs_data(conn, variables, variable_names, table_name, survey, year):
     for i, col_name in enumerate(['state', 'county', 'tract', 'block group']):
         data[col_name] = data['index'].apply(lambda col: str(col.geo[i][1]))
     data = data.drop(['index'], axis=1)
+    
+    # merge county income data with other ACS data
+    data = data.merge(countydata[['county','Mean_County_Income']],'left', on = 'county', copy = False)
+
     
     # load on database
     data.to_sql(table_name, conn, schema='data_exploration', index=False)
