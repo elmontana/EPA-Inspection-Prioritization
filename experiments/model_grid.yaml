@@ -4,7 +4,7 @@ experiment_name: 'model_grid'
 
 temporal_config:
   # duration for aggregating feature and labels for both trainig and testing
-  feature_duration: '14 years'
+  feature_duration: '10 years'
   label_duration: '1 year'
 
   feature_aod_interval: '1 year'
@@ -20,7 +20,7 @@ temporal_config:
   # this means that the above two intervals are going to be repeated
   # to generate num_train_repeat (train, test) splits
   train_repeat_interval: '1 year'
-  num_train_repeat: 1
+  num_train_repeat: 5
 
 cohort_config:
   # query to obtain the entities for a train-test split
