@@ -151,7 +151,7 @@ def plot_fairness_metric_over_groups(
             pc1 = np.sum(labels[gids == 1])
             recall1 = tp1 / pc1
 
-            fairness_value.append(recall1 / recall0)
+            fairness_value.append(np.abs(recall1 - recall0)) # (recall1 / recall0)
         else:
             tp0 = np.sum((predictions[gids == 0] == labels[gids == 0]) * (labels[gids == 0] == 1))
             pc0 = np.sum(predictions[gids == 0] == 1)
@@ -161,7 +161,7 @@ def plot_fairness_metric_over_groups(
             pc1 = np.sum(predictions[gids == 1] == 1)
             fdr1 = 1.0 - tp1 / pc1
 
-            fairness_value.append(fdr1 / fdr0)
+            fairness_value.append(np.abs(fdr1 - fdr0)) # (fdr1 / fdr0)
     fairness_value = np.array(fairness_value)
 
     # save recall disparity data to csv
@@ -189,7 +189,7 @@ def plot_fairness_metric_over_groups(
     plt.ylabel(f'{fairness_metric.upper()} Disparity for Different [{feature_name}] Groups')
     plt.xlim(0, 0.1)
     if fairness_metric == 'fdr':
-        plt.ylim(0.8, 1.2)
+        plt.ylim(0, 0.15) # plt.ylim(0.8, 1.2)
     plt.legend(model_class_names)
     for i in [286, 730, 1051, 521, 710]:
         padding = 0.005 if fairness_metric == 'fdr' else 0.005
