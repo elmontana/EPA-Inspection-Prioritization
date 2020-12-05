@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import src.utils.data_utils as data_utils
 import src.utils.plot_utils as plot_utils
+import src.utils.sql_utils as sql_utils
 
-import seaborn as sns
 from matplotlib import pyplot as plt
 from pathlib import Path
 from src.evaluate.model_selection import find_best_models
@@ -60,21 +60,6 @@ def plot_best_results_over_time(
         model_idx=best_model_idx, save_dir=save_dir)
 
 
-def plot_precision_recall_curves(results_table_name, save_dir='./plots/'):
-    """
-    Plot precision recall curves for each model in a set of results.
-
-    Arguments:
-        - results_table_name: name of results table
-        - save_dir: directory where plots should be saved
-    """
-    if not results_table_name.startswith('results.'):
-        results_table_name = f'results.{results_table_name}'
-
-    results_df = data_utils.get_table(results_table_name)
-    plot_utils.plot_pr_at_k(results_df, Path(save_dir) / 'curve')
-
-
 def plot_best_precision_recall_curves(
     results_table_name,
     metric='precision_score_at_600', n=5, save_dir='./plots/'):
@@ -92,11 +77,47 @@ def plot_best_precision_recall_curves(
     best_model_idx = find_best_models(results_table_prefix, metric=metric, n=n)
 
     if not results_table_name.startswith('results.'):
+        results_table_name = results_table_name.split('.')[-1]
         results_table_name = f'results.{results_table_name}'
 
     results_df = data_utils.get_table(results_table_name)
     results_df = results_df.iloc[best_model_idx]
     plot_utils.plot_pr_at_k(results_df, Path(save_dir) / 'curve')
+
+
+def plot_best_feature_importances(
+    exp_table_prefix, metric='precision_score_at_600', 
+    n_models=5, n_features=12, save_dir='./plots/'):
+    """
+    Plot feature importances for the best models at the provided metric.
+
+    Arguments:
+        - exp_table_prefix: prefix of experiment tables
+            (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
+        - metric: the metric to use for selecting best models
+        - n_models: number of models to select
+        - n_features: number of features to include in each plot
+        - save_dir: directory where plots should be saved
+    """
+    best_model_idx = find_best_models(exp_table_prefix, metric=metric, n=n_models)
+
+    # Get model paths
+    test_results, _, _ = data_utils.get_test_results_over_time(exp_table_prefix)
+    model_path_col_idx = test_results[0].columns.get_loc('model_path')
+    model_paths = test_results[0].iloc[best_model_idx, model_path_col_idx].to_numpy()
+
+    # Get feature names
+    feature_names = data_utils.get_experiment_feature_names(exp_table_prefix)
+    feature_names = np.array(feature_names)
+
+    # Plot feature importances
+    for path in model_paths:
+        with open(path, 'rb') as file:
+            model = pickle.load(file)
+        
+        feature_importance = np.array(model.feature_importance())
+        keep_idx = np.argsort(feature_importance)[::-1][:n_features]
+        plot_utils.plot_feature_importances(feature_names[keep_idx], feature_importance[keep_idx], save_dir)
 
 
 def plot_fairness_metric_over_groups(
@@ -216,17 +237,16 @@ if __name__ == '__main__':
     # we don't have to run main.py and spend an hour training models;
     # instead just use the results that are already in the database.
 
+    test_results_tables_prefix = 'j_v1_model_grid_201203233617'
+
     #print('Plotting precision over time ...')
-    #test_results_tables_prefix = 'j_v1_model_grid_201203233617'
     #plot_results_over_time(test_results_tables_prefix)
 
-    print('Plotting precision for best 5 models over time ...')
-    test_results_tables_prefix = 'j_v1_model_grid_201203233617'
-    plot_best_results_over_time(test_results_tables_prefix, n=5)
+    #print('Plotting precision for best 5 models over time ...')
+    #plot_best_results_over_time(test_results_tables_prefix, n=5)
 
-    #print('Plotting precision recall curves for best 5 models over time ...')
-    #results_table_name = 'j_v1_model_grid_201203233617_160101_test_results'
-    #plot_precision_recall_curves(results_table_name)
+    print('Plotting feature importances for best 5 models ...')
+    plot_best_feature_importances(test_results_tables_prefix, n_models=5, n_features=12)
 
     '''
     test_results_table_name = 'j_v1_model_grid_201203233617_160101_test_results'

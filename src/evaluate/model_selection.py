@@ -55,7 +55,6 @@ def find_best_models(table_prefix, metric='precision_score_at_600', sort_by='min
     # Find the indices of the best models
     best_model_idx = values.argsort()[::-1]
     best_model_idx = best_model_idx[:n]
-    print(best_model_idx, values[best_model_idx])
 
     return best_model_idx
 
