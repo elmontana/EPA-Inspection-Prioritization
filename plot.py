@@ -52,6 +52,7 @@ def plot_best_results_over_time(
         - save_dir: directory where plots should be saved
     """
     best_model_idx = find_best_models(test_results_tables_prefix, metric=metric, n=n)
+    print(f'The best model indices are: {best_model_idx}.')
     plot_utils.plot_results_over_time(
         test_results_tables_prefix,
         metrics=([metric] + other_metrics), base_rates=base_rates,
@@ -99,8 +100,10 @@ def plot_best_precision_recall_curves(
 
 def plot_fairness_metric_over_groups(
     results_table_name, fairness_metric='fdr',
-    feature_name='county_population', feature_threshold=200_000,
-    metric='precision_score_at_600', save_dir='./plots/'):
+    feature_name='mean_county_income',
+    pos_fn=lambda x: x > 200_000, neg_fn=lambda x: x <= 200_000,
+    metric='precision_score_at_600', save_dir='./plots/',
+    filename_prefix='model_disparity'):
     """
     Plot recall disparity scatter plot over groups.
 
@@ -111,6 +114,7 @@ def plot_fairness_metric_over_groups(
         - feature_threshold: threshold to split the data to two groups
         - metric: the metric to use for metric axis
         - save_dir: directory where plots should be saved
+        - filename_prefix: prefix for the filename of the plot
     """
     metric_k = metric.split('_at_')[-1]
     results_table_prefix = results_table_name.split('_test_results')[0]
@@ -119,10 +123,7 @@ def plot_fairness_metric_over_groups(
 
     results_df = data_utils.get_table(f'results.{results_table_name}')
     feature_df = data_utils.get_table(feature_table_name)
-    population_density_df = data_utils.get_table('semantic.v0_acs')[['entity_id', 'zip_density_sq_miles']].drop_duplicates('entity_id')
-    # feature_df = feature_df.join(population_density_df.set_index('entity_id'), on='entity_id').dropna()
     feature_df = feature_df[['entity_id', feature_name]]
-    group_ids = (feature_df[feature_name].to_numpy() > feature_threshold).astype(int)
     label_df = data_utils.get_table(label_table_name)
 
     num_models = len(results_df)
@@ -136,8 +137,15 @@ def plot_fairness_metric_over_groups(
         prediction_table_name = f'predictions.{results_table_prefix}_test_model_{i}'
         prediction_df = data_utils.get_table(prediction_table_name)
         prediction_df = prediction_df.join(feature_df.set_index('entity_id'), on='entity_id').dropna()
-        prediction_df['group_ids'] = (prediction_df[feature_name].to_numpy() > feature_threshold).astype(int)
+
+        group_identifying_features = prediction_df[feature_name].to_numpy()
+        group_ids = np.zeros_like(group_identifying_features) - 1
+        group_ids[pos_fn(group_identifying_features)] = 1
+        group_ids[neg_fn(group_identifying_features)] = 0
+        prediction_df['group_ids'] = group_ids.astype(int)
+
         combined_df = prediction_df.join(label_df.set_index('entity_id'), on='entity_id').dropna()
+        combined_df = combined_df[combined_df.group_ids != -1]
         predictions = combined_df[f'prediction_at_{metric_k}'].to_numpy()
         labels = combined_df['label'].to_numpy()
         gids = combined_df['group_ids'].to_numpy()
@@ -151,7 +159,7 @@ def plot_fairness_metric_over_groups(
             pc1 = np.sum(labels[gids == 1])
             recall1 = tp1 / pc1
 
-            fairness_value.append(np.abs(recall1 - recall0)) # (recall1 / recall0)
+            fairness_value.append(recall1 / recall0)
         else:
             tp0 = np.sum((predictions[gids == 0] == labels[gids == 0]) * (labels[gids == 0] == 1))
             pc0 = np.sum(predictions[gids == 0] == 1)
@@ -161,7 +169,7 @@ def plot_fairness_metric_over_groups(
             pc1 = np.sum(predictions[gids == 1] == 1)
             fdr1 = 1.0 - tp1 / pc1
 
-            fairness_value.append(np.abs(fdr1 - fdr0)) # (fdr1 / fdr0)
+            fairness_value.append(fdr1 / fdr0)
     fairness_value = np.array(fairness_value)
 
     # save recall disparity data to csv
@@ -171,7 +179,7 @@ def plot_fairness_metric_over_groups(
         metric: model_metrics,
         f'{fairness_metric}': fairness_value
     })
-    rd_df.to_csv(Path(save_dir) / f'model_disparity_{fairness_metric}.csv')
+    rd_df.to_csv(Path(save_dir) / f'{filename_prefix}_{fairness_metric}.csv')
 
     # prepare colors for the scatter plot
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -187,18 +195,18 @@ def plot_fairness_metric_over_groups(
                     c=[colors[i]], s=size, marker=markers[i])
     plt.xlabel(metric)
     plt.ylabel(f'{fairness_metric.upper()} Disparity for Different [{feature_name}] Groups')
-    plt.xlim(0, 0.1)
-    if fairness_metric == 'fdr':
-        plt.ylim(0, 0.15) # plt.ylim(0.8, 1.2)
+    # plt.xlim(0, 0.1)
+    # if fairness_metric == 'fdr':
+    #     plt.ylim(0.8, 1.2)
     plt.legend(model_class_names)
-    for i in [286, 730, 1051, 521, 710]:
+    for i in [102, 107, 113, 194, 196]:
         padding = 0.005 if fairness_metric == 'fdr' else 0.005
         plt.scatter([model_metrics[i]], [fairness_value[i]],
                     c='k', s=24)
         plt.text(s=f'Model {i}', ha='center', va='bottom',
                  x=model_metrics[i], y=fairness_value[i] + padding)
     plt.tight_layout()
-    plt.savefig(Path(save_dir) / f'model_disparity_{fairness_metric}.pdf')
+    plt.savefig(Path(save_dir) / f'{filename_prefix}_{fairness_metric}.pdf')
 
 
 
@@ -209,17 +217,30 @@ if __name__ == '__main__':
 
     '''
     print('Plotting precision over time ...')
-    test_results_tables_prefix = 'i_v1_model_grid_201115015235'
+    test_results_tables_prefix = 'j_v1_model_grid_201203233617'
     plot_results_over_time(test_results_tables_prefix)
 
     print('Plotting precision for best 5 models over time ...')
-    test_results_tables_prefix = 'i_v1_model_grid_201115015235'
+    test_results_tables_prefix = 'j_v1_model_grid_201203233617'
     plot_best_results_over_time(test_results_tables_prefix, n=5)
 
     print('Plotting precision recall curves for best 5 models over time ...')
-    results_table_name = 'i_v1_model_grid_201115015235_160101_test_results'
+    results_table_name = 'j_v1_model_grid_201203233617_160101_test_results'
     plot_precision_recall_curves(results_table_name)
     '''
 
-    plot_fairness_metric_over_groups('j_v1_model_grid_201123211238_160101_test_results', fairness_metric='fdr')
-    plot_fairness_metric_over_groups('j_v1_model_grid_201123211238_160101_test_results', fairness_metric='tpr')
+    test_results_table_name = 'j_v1_model_grid_201203233617_160101_test_results'
+    p10 = 49656.311
+    p90 = 51535.599
+    ref_group_fn = lambda x: np.logical_and(x > p10, x < p90)
+    for metric in ['fdr', 'tpr']:
+        plot_fairness_metric_over_groups(test_results_table_name,
+                                         fairness_metric=metric,
+                                         pos_fn=lambda x: x < p10,
+                                         neg_fn=ref_group_fn,
+                                         filename_prefix='p10_vs_middle')
+        plot_fairness_metric_over_groups(test_results_table_name,
+                                         fairness_metric=metric,
+                                         pos_fn=lambda x: x > p90,
+                                         neg_fn=ref_group_fn,
+                                         filename_prefix='p90_vs_middle')

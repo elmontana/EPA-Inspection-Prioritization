@@ -1,3 +1,4 @@
+import numpy as np
 import sklearn.linear_model
 import sklearn.preprocessing
 from . import base

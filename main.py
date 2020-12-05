@@ -92,7 +92,7 @@ def compute_crosstab_for_model(model, X, y, feature_names, save_prefix, metric, 
     """
     assert type(k) == int, 'Crosstab only supports integer k value now.'
     assert len(feature_names) == X.shape[1], 'Feature name and X do not match.'
-    y_pred, probs = get_predictions(model, X, k=k)
+    y_pred, probs = get_predictions(model, X, k_values=[k])
     feature_means, feature_stds = X.mean(axis=0), X.std(axis=0)
     pos_pred_means = X[y_pred == 1].mean(axis=0)
     neg_pred_means = X[y_pred == 0].mean(axis=0)
@@ -232,7 +232,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
                 print(f'The model ranked #{ranking} is a baseline, skipping.')
                 continue
             else:
-                plot_utils.plot_pr_at_k(test_results.iloc[model_index], "best_p_at_600")
+                plot_utils.plot_pr_at_k(test_results.iloc[model_index].to_frame().T, "best_p_at_600")
                 best_model_path = test_results['model_path'][model_index]
                 with open(best_model_path, 'rb') as f:
                     model = pickle.load(f)
