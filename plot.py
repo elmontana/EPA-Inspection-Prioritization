@@ -53,6 +53,7 @@ def plot_best_results_over_time(
     """
     best_model_idx = find_best_models(test_results_tables_prefix, metric=metric, n=n)
     print(f'The best model indices are: {best_model_idx}.')
+
     plot_utils.plot_results_over_time(
         test_results_tables_prefix,
         metrics=([metric] + other_metrics), base_rates=base_rates,
@@ -215,20 +216,19 @@ if __name__ == '__main__':
     # we don't have to run main.py and spend an hour training models;
     # instead just use the results that are already in the database.
 
-    '''
-    print('Plotting precision over time ...')
-    test_results_tables_prefix = 'j_v1_model_grid_201203233617'
-    plot_results_over_time(test_results_tables_prefix)
+    #print('Plotting precision over time ...')
+    #test_results_tables_prefix = 'j_v1_model_grid_201203233617'
+    #plot_results_over_time(test_results_tables_prefix)
 
     print('Plotting precision for best 5 models over time ...')
     test_results_tables_prefix = 'j_v1_model_grid_201203233617'
     plot_best_results_over_time(test_results_tables_prefix, n=5)
 
-    print('Plotting precision recall curves for best 5 models over time ...')
-    results_table_name = 'j_v1_model_grid_201203233617_160101_test_results'
-    plot_precision_recall_curves(results_table_name)
-    '''
+    #print('Plotting precision recall curves for best 5 models over time ...')
+    #results_table_name = 'j_v1_model_grid_201203233617_160101_test_results'
+    #plot_precision_recall_curves(results_table_name)
 
+    '''
     test_results_table_name = 'j_v1_model_grid_201203233617_160101_test_results'
     p10 = 49656.311
     p90 = 51535.599
@@ -244,3 +244,5 @@ if __name__ == '__main__':
                                          pos_fn=lambda x: x > p90,
                                          neg_fn=ref_group_fn,
                                          filename_prefix='p90_vs_middle')
+    '''
+

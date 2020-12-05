@@ -49,12 +49,13 @@ def find_best_models(table_prefix, metric='precision_score_at_600', sort_by='min
     # Filter out values where num_labeled_samples is below some threshold
     num_labeled_samples_min_threshold = 75
     num_labeled_samples_values = get_maximin_values(filter_metric)
-    keep_idx = num_labeled_samples_values > num_labeled_samples_min_threshold
-    values = values[keep_idx]
+    filter_idx = num_labeled_samples_values < num_labeled_samples_min_threshold
+    values[filter_idx] = -1
 
     # Find the indices of the best models
     best_model_idx = values.argsort()[::-1]
     best_model_idx = best_model_idx[:n]
+    print(best_model_idx, values[best_model_idx])
 
     return best_model_idx
 
