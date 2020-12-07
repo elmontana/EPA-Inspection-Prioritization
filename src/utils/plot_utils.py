@@ -91,6 +91,18 @@ def plot_pr_at_k(
 
 
 def plot_feature_importances(feature_names, feature_importance, save_dir):
+    """
+    Plot feature importances.
+    
+    Arguments:
+        - feature_names: list of feature names
+        - feature_importances: list of relative feature importance values
+        - save_dir: directory where plot should be saved
+    """
+    # Create save directory if not exists
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+                      
     assert len(feature_names) == len(feature_importance)
     y_pos = np.arange(len(feature_names))
     order = np.argsort(feature_importance)[::-1]
@@ -106,7 +118,7 @@ def plot_feature_importances(feature_names, feature_importance, save_dir):
     ax.set_ylabel('Feature Name')
     fig.set_size_inches(11.0, 8.5)
     plt.tight_layout()
-    fig.savefig(os.path.join(save_dir, 'feature_importance.pdf'))
+    fig.savefig(os.path.join(save_dir, 'feature_importance.png'))
     plt.close(fig)
 
 
