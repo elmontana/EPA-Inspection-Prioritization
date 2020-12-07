@@ -111,13 +111,15 @@ def plot_best_feature_importances(
     feature_names = np.array(feature_names)
 
     # Plot feature importances
-    for path in model_paths:
+    for path, model_idx in zip(model_paths, best_model_idx):
         with open(path, 'rb') as file:
             model = pickle.load(file)
         
         feature_importance = np.array(model.feature_importance())
         keep_idx = np.argsort(feature_importance)[::-1][:n_features]
-        plot_utils.plot_feature_importances(feature_names[keep_idx], feature_importance[keep_idx], save_dir)
+        plot_utils.plot_feature_importances(
+            feature_names[keep_idx], feature_importance[keep_idx], 
+            Path(save_dir) / f'{model_{model_idx}')
 
 
 def plot_fairness_metric_over_groups(
