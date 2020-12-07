@@ -119,14 +119,15 @@ def plot_best_feature_importances(
         keep_idx = np.argsort(feature_importance)[::-1][:n_features]
         plot_utils.plot_feature_importances(
             feature_names[keep_idx], feature_importance[keep_idx], 
-            Path(save_dir) / f'{model_{model_idx}')
+            Path(save_dir) / f'model_{model_idx}')
 
 
 def plot_fairness_metric_over_groups(
     results_table_name, fairness_metric='fdr',
     feature_name='mean_county_income',
     pos_fn=lambda x: x > 200_000, neg_fn=lambda x: x <= 200_000,
-    metric='precision_score_at_600', save_dir='./plots/',
+    metric='precision_score_at_600', n_best_models=5,
+    save_dir='./plots/',
     filename_prefix='model_disparity'):
     """
     Plot recall disparity scatter plot over groups.
@@ -137,6 +138,7 @@ def plot_fairness_metric_over_groups(
         - feature_name: feature name that is used to identify groups
         - feature_threshold: threshold to split the data to two groups
         - metric: the metric to use for metric axis
+        - n_models: number of best models to highlight
         - save_dir: directory where plots should be saved
         - filename_prefix: prefix for the filename of the plot
     """
@@ -146,8 +148,7 @@ def plot_fairness_metric_over_groups(
     label_table_name = f'experiments.{results_table_prefix}_test_labels'
 
     results_df = data_utils.get_table(f'results.{results_table_name}')
-    feature_df = data_utils.get_table(feature_table_name)
-    feature_df = feature_df[['entity_id', feature_name]]
+    feature_df = data_utils.get_table(feature_table_name, columns=['entity_id', feature_name])
     label_df = data_utils.get_table(label_table_name)
 
     num_models = len(results_df)
@@ -157,7 +158,9 @@ def plot_fairness_metric_over_groups(
     model_class_names = [s.split('.')[-1] for s in model_classes]
     model_metrics = results_df[metric].to_numpy()
     fairness_value = []
-    for i in range(num_models):
+    
+    import tqdm
+    for i in tqdm.trange(num_models):
         prediction_table_name = f'predictions.{results_table_prefix}_test_model_{i}'
         prediction_df = data_utils.get_table(prediction_table_name)
         prediction_df = prediction_df.join(feature_df.set_index('entity_id'), on='entity_id').dropna()
@@ -223,7 +226,9 @@ def plot_fairness_metric_over_groups(
     # if fairness_metric == 'fdr':
     #     plt.ylim(0.8, 1.2)
     plt.legend(model_class_names)
-    for i in [102, 107, 113, 194, 196]:
+
+    best_model_idx = find_best_models(results_table_prefix, metric=metric, n=n_best_models)
+    for i in best_model_idx:
         padding = 0.005 if fairness_metric == 'fdr' else 0.005
         plt.scatter([model_metrics[i]], [fairness_value[i]],
                     c='k', s=24)
@@ -240,6 +245,7 @@ if __name__ == '__main__':
     # instead just use the results that are already in the database.
 
     test_results_tables_prefix = 'j_v1_model_grid_201203233617'
+    test_results_table_name = 'j_v1_model_grid_201203233617_160101_test_results'
 
     #print('Plotting precision over time ...')
     #plot_results_over_time(test_results_tables_prefix)
@@ -247,11 +253,9 @@ if __name__ == '__main__':
     #print('Plotting precision for best 5 models over time ...')
     #plot_best_results_over_time(test_results_tables_prefix, n=5)
 
-    print('Plotting feature importances for best 5 models ...')
-    plot_best_feature_importances(test_results_tables_prefix, n_models=5, n_features=12)
+    #print('Plotting feature importances for best 5 models ...')
+    #plot_best_feature_importances(test_results_tables_prefix, n_models=5, n_features=12)
 
-    '''
-    test_results_table_name = 'j_v1_model_grid_201203233617_160101_test_results'
     p10 = 49656.311
     p90 = 51535.599
     ref_group_fn = lambda x: np.logical_and(x > p10, x < p90)
@@ -266,5 +270,4 @@ if __name__ == '__main__':
                                          pos_fn=lambda x: x > p90,
                                          neg_fn=ref_group_fn,
                                          filename_prefix='p90_vs_middle')
-    '''
 
