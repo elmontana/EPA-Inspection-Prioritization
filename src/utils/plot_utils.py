@@ -118,7 +118,7 @@ def plot_feature_importances(feature_names, feature_importance, save_dir):
     ax.set_ylabel('Feature Name')
     fig.set_size_inches(11.0, 8.5)
     plt.tight_layout()
-    fig.savefig(os.path.join(save_dir, 'feature_importance.png'))
+    fig.savefig(os.path.join(save_dir, 'feature_importance.pdf'))
     plt.close(fig)
 
 
