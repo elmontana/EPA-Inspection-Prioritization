@@ -127,14 +127,26 @@ def main(conn, config, cohort_table, to_table,
                         imputes.append((feature_name,) + impute_config)
 
                     else:
-                        feature_name = f'{output_prefix}_{metric}_{agg_column_name}'
-                        feature_str = f'{metric}({agg_column_name}) as {feature_name}'
+                        if not 'time_windows' in agg_column:
+                            agg_column['time_windows'] = ['all']
 
-                        feature_columns.append(feature_str)
+                        for time_window in agg_column['time_windows']:
+                            feature_name = f'{output_prefix}_{metric}_{agg_column_name}'
+                            if time_window == 'all':
+                                feature_expression = agg_column_name
+                            else:
+                                feature_expression = 'case when ' + \
+                                                     f"{event_date_col_name} > '{end_time}'::date - interval '{time_window}'" + \
+                                                     f' then {agg_column_name} else null end'
+                                feature_name += '_' + time_window.replace(' ', '_')
 
-                        imputation = agg_table['imputation'][metric]
-                        impute_config = get_impute_str(feature_name, imputation)
-                        imputes.append((feature_name,) + impute_config)
+                            feature_str = f'{metric}({feature_expression}) as {feature_name}'
+
+                            feature_columns.append(feature_str)
+
+                            imputation = agg_table['imputation'][metric]
+                            impute_config = get_impute_str(feature_name, imputation)
+                            imputes.append((feature_name,) + impute_config)
 
             join_query += ' '
             join_query += 'left join (' + \

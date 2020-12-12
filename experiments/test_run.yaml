@@ -83,6 +83,7 @@ feature_config:
 
     imputation:
       sum: 'zero'
+      avg: 'zero'
       datediff: 'inf'
 
     aggregates:
@@ -90,14 +91,18 @@ feature_config:
         column_name: 'found_violation'
         metrics:
           - 'sum'
+          - 'avg'
+        time_windows: ['all', '1 year', '2 years', '5 years']
       -
         column_name: 'citizen_complaint'
         metrics:
           - 'sum'
+        time_windows: ['all', '1 year', '2 years', '5 years']
       -
         column_name: 'penalty_amount'
         metrics:
           - 'sum'
+        time_windows: ['all', '1 year', '2 years', '5 years']
       -
         column_name: 'event_date'
         metrics:
