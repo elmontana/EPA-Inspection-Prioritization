@@ -254,9 +254,10 @@ if __name__ == '__main__':
     #print('Plotting precision for best 5 models over time ...')
     #plot_best_results_over_time(test_results_tables_prefix, n=5)
 
-    #print('Plotting feature importances for best 5 models ...')
-    #plot_best_feature_importances(test_results_tables_prefix, n_models=5, n_features=12)
+    print('Plotting feature importances for best 5 models ...')
+    plot_best_feature_importances(test_results_tables_prefix, n_models=5, n_features=12)
 
+    '''
     p10 = 49656.311
     p90 = 51535.599
     ref_group_fn = lambda x: np.logical_and(x > p10, x < p90)
@@ -271,4 +272,5 @@ if __name__ == '__main__':
                                          pos_fn=lambda x: x > p90,
                                          neg_fn=ref_group_fn,
                                          filename_prefix='p90_vs_middle')
+    '''
 
