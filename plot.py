@@ -235,6 +235,14 @@ def plot_fairness_metric_over_groups(
                     c='k', s=24)
         plt.text(s=f'Model {i}', ha='center', va='bottom',
                  x=model_metrics[i], y=fairness_value[i] + padding)
+
+    for i in range(3):
+        padding = 0.005 if fairness_metric == 'fdr' else 0.005
+        plt.scatter([model_metrics[i]], [fairness_value[i]],
+                    c='k', s=24)
+        plt.text(s=f'Baseline {i}', ha='center', va='bottom',
+                 x=model_metrics[i], y=fairness_value[i] + padding)
+
     plt.tight_layout()
     plt.savefig(Path(save_dir) / f'{filename_prefix}_{fairness_metric}.pdf')
 
@@ -257,9 +265,8 @@ if __name__ == '__main__':
     print('Plotting feature importances for best 5 models ...')
     plot_best_feature_importances(test_results_tables_prefix, n_models=5, n_features=12)
 
-    '''
-    p10 = 49656.311
-    p90 = 51535.599
+    p10 = 59110.4
+    p90 = 72921.05
     ref_group_fn = lambda x: np.logical_and(x > p10, x < p90)
     for metric in ['fdr', 'tpr']:
         plot_fairness_metric_over_groups(test_results_table_name,
