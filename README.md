@@ -1,3 +1,4 @@
+
 # EPA Team 3
 
 ### Getting Started
@@ -14,39 +15,38 @@ pip3 install -r requirements.txt
 
 ### Running the Code
 
+To run an experiment from a config file:
 ```
-python3 main.py
+python3 main.py --config [config_file]
 ```
-To get information about different command line arguments, run `python3 main.py --help`.
+
+Each experiment generates a unique prefix of the form `{user}_{version}_{exp_name}_{exp_time}`, e.g. "i_v1_test_run_201113235700". To generate plots from an experiment, just run the following:
+```
+python3 plot.py --exp [exp_prefix]
+```
+
+To get information about different command line arguments, run `python3 main.py --help` or `python3 plot.py --help`.
 
 
 ### How It Works
 
-Every experiment is specified by a configuration file. 
-Detailed documentation about configuration files can be found in [`experiments/README.md`](https://github.com/dssg/mlpolicylab_fall20_epa3/blob/master/experiments/README.md).
+Every experiment is specified by a configuration file. Detailed documentation about configuration files can be found in [`experiments/README.md`](https://github.com/dssg/mlpolicylab_fall20_epa3/blob/master/experiments/README.md).
 
-Currently the code reads the config file (default to `experiments/test_run.yaml`), creates config for train/test splits, preprocesses data (only if the flag `--run_preprocessing` is included), generates a cohort table, generates the features, imputes the missing values in the features, trains a set of models while performing grid search over provided set of parameter combinations, and tests each model.
+Running an experiment does the following:
+1. **Setup and clean our data** with a [series of SQL scripts](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/preprocessing/sql) (only if the `--run_preprocessing` is included). Creates tables in the `cleaned`, and `semantic` schemas of the database.
+2. **Generate cohorts** of facilities, and **split the data** into training/validation sets. This involves generating/aggregating features, imputing missing values. Creates tables in the `experiments` schema.
+3. **Train the different models** (across all specific model types and configurations). Performs grid search over the set of parameter combinations specified by the experimental config.
+4. **Evaluate the models**, and save both the raw predictions and the evaluation metric results to a database. Creates tables in the `predictions` and `results` schemas.
 
-The program creates tables in the `cleaned`, `semantic`, `experiments`, and `results` schemas of the database. During training and evaluation, it also creates local model dumps and evaluation result tables in a log directory.
+### Code Structure
 
-### EPA Data Notes
-
-The New York State Department of Environmental Conservation (NYSDEC) is responsible for inspecting hazardous waste-producing facilities to ensure compliance with federal regulations. As there are over 50,000 facilities and inspections are very time consuming, it is important to ensure that inspectors spend their time inspecting the facilities with the highest risk of violating these regulations.
-
-For this project, you will have access to public waste shipment and inspection data, available from both the Federal Environmental Protection Agency (EPA) and NYSDEC. While national data has been provided for data from the EPA, this project focuses only on inspections in the state of New York. The provided data sources include:
-- **RCRAInfo**: Contains inspection, violation, and enforcement data related to the Resource Conservation and Recovery Act (RCRA), as well as information about facilities and handlers of hazardous waste. These data are available in the `rcra` schema, and note in particular the inspections and results information found in `rcra.cmecomp3` (details about this table can be found in the data dictionary under "Data Element Dictionary" -> "Reporting Tables" -> "CM&E"). For more information, see:
-    - [RCRAInfo Data Summary](https://echo.epa.gov/tools/data-downloads/rcrainfo-download-summary)
-    - [General Information about RCRA](https://rcrapublic.epa.gov/rcrainfoweb/action/main-menu/view)
-    - [Detailed Data Dictionary](https://rcrainfo.epa.gov/rcrainfo-help/application/publicHelp/index.htm#introduction.htm)
-- **ICIS-FE&C**: Federal enforcement and compliance (FE&C) data from the Integrated Compliance Information System (ICIS), available in the `fec` schema. [More information here](https://echo.epa.gov/tools/data-downloads/icis-fec-download-summary).
-- **FRS**: Data in the `frs` schema is from the Facility Registry Service (FRS), allowing for linking facilities between ICIS and RCRAInfo datasets. [More information here](https://echo.epa.gov/tools/data-downloads/frs-download-summary).
-- **ICIS-Air**: Data in the `air` schema is from the Integrated Compliance Information System for Air. [More information here](https://echo.epa.gov/tools/data-downloads/icis-air-download-summary).
-- **ICIS-NPDES**: Data in the `npdes` schema is from the Integrated Compliance Information System National Pollutant Discharge Elimination System (NPDES). [More information here](https://echo.epa.gov/tools/data-downloads/icis-npdes-download-summary).
-- **NYSDEC Reports**: The `nysdec_reports` schema includes information from reports filed annually by large quantity hazardous waste generators as well as treatment, storage, and disposal facilities in the state of New York. For more information, see:
-    - [General information about the reports](https://www.dec.ny.gov/chemical/57604.html)
-    - [Reporting forms](https://www.dec.ny.gov/chemical/57619.html)
-- **Manifest Data**: The `manifest` schema contains information about hazardous waste shipments to, from, or within the state of New York. More information:
-    - [Data files and overview](http://www.dec.ny.gov/chemical/9098.html)
-    - [General information about manifests](http://www.dec.ny.gov/chemical/60805.html)
-    - [Hazardous waste codes and designations](https://govt.westlaw.com/nycrr/Document/I4eacc3f8cd1711dda432a117e6e0f345?viewType=FullText&originationContext=documenttoc&transitionType=CategoryPageItem&contextData=(sc.Default))
-
+The code for this repository is currently structured as follows: 
+* [`main.py`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/main.py): running experiments
+* [`plot.py`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/plot.py): plotting and visualizing results
+* [`experiments/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/experiments): experimental configuration files
+* [`src/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src): source code files
+	* [`src/preprocessing/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/preprocessing): preprocessing and cleaning raw data from EPA, NYSDEC, and ACS
+	* [`src/model_prep/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/model_prep): generating cohorts, aggregating features, and computing labels
+	* [`src/models/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/models): custom classes/wrappers/implementations for models
+	* [`src/train/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/train): model training
+	* [`src/evaluate/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/evaluate): getting model predictions, model evaluation, and model selection
