@@ -1,5 +1,5 @@
 import pandas as pd
-from .sql_utils import get_connection, get_table_columns
+from .sql_utils import get_connection, get_table_names, get_table_columns
 
 
 
@@ -60,11 +60,8 @@ def get_test_results_over_time(table_prefix):
     """
 
     # Get names of test result tables
-    query = f"select table_name from information_schema.tables where table_schema = 'results'"
-    results_tables = pd.read_sql(query, con=get_connection()).to_numpy(copy=True).flatten()
-    test_result_tables = [
-        table for table in results_tables 
-        if table.startswith(table_prefix) and table.endswith('test_results')]
+    test_result_tables = get_table_names(
+        get_connection(), 'results', prefix=table_prefix, suffix='test_results')
 
     # Get corresponding data frames
     test_results = [get_table(f'results.{table}') for table in test_result_tables]
@@ -93,11 +90,8 @@ def get_experiment_feature_names(table_prefix):
     """
 
     # Get names of test feature tables
-    query = f"select table_name from information_schema.tables where table_schema = 'experiments'"
-    feature_tables = pd.read_sql(query, con=get_connection()).to_numpy(copy=True).flatten()
-    test_feature_tables = [
-        table for table in feature_tables 
-        if table.startswith(table_prefix) and table.endswith('test_features')]
+    test_feature_tables = get_table_names(
+        get_connection(), 'experiments', prefix=table_prefix, suffix='test_features')
     assert len(test_feature_tables) > 0
 
     # Get feature column names

@@ -77,6 +77,25 @@ def run_sql_from_string(conn, statement):
     conn.execute(statement)
 
 
+def get_table_names(conn, schema, prefix='', suffix=''):
+    """
+    Get the names of tables from the specified schema.
+
+    Arguments:
+        - conn: SQL connection to database
+        - schema: name of schema where tables are located
+        - prefix: prefix of tables to include
+        - suffix: suffix of tables to include
+
+    Returns:
+        - table_names: a list of table names
+    """
+    query = f"select table_name from information_schema.tables where table_schema = '{schema}' order by object_id"
+    table_names = pd.read_sql(query, con=get_connection()).to_numpy(copy=True).flatten()
+    table_names = [t for t in table_names if t.startswith(prefix) and table.endswith(suffix)]
+    return table_names
+
+
 def get_table_columns(conn, table_name):
     """
     Get the column names from a table.
@@ -93,4 +112,25 @@ def get_table_columns(conn, table_name):
                                 f"and table_schema = '{table_schema}' "
                                 f"and table_name = '{table_name}';", conn)
     return table_columns['column_name'].tolist()
+
+
+def merge_tables(table_names, output_table_name):
+    """
+    Merge tables via 'UNION ALL', and drop the original tables.
+
+    Arguments:
+        - tables_names: list of table names to be merged
+        - output_table_name: name of output table
+    """
+    conn = get_connection()
+    
+    select_queries = [
+        f'select {i} as split, s{i}.* from {table_name} s{i}' 
+        for i, table_name in enumerate(table_names)]
+    query = f'create table {output_table_name} as ({" union all ".join(select_queries)});'
+    sql.run_sql_from_string(conn, query)
+
+    # Drop the original tables
+    for table_name in table_names:
+        sql.run_sql_from_string(conn, f'drop table {table_name}')
 

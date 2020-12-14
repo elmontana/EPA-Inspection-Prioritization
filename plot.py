@@ -1,9 +1,9 @@
+import click
 import numpy as np
 import pandas as pd
 import pickle
 import src.utils.data_utils as data_utils
 import src.utils.plot_utils as plot_utils
-import src.utils.sql_utils as sql_utils
 
 from matplotlib import pyplot as plt
 from pathlib import Path
@@ -248,6 +248,23 @@ def plot_fairness_metric_over_groups(
 
 
 
+@click.command()
+@click.option('--exp_prefix', default='j_v1_model_grid_201212001909',
+    help='prefix of experiment tables (e.g. "i_v1_test_run_201113235700")')
+def main(exp_prefix, test_results_table_name):
+    """
+    Generate plots from an experiment.
+
+    Arguments:
+        - exp_prefix: prefix of experiment tables
+            (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
+
+        - test_results_table_name:
+
+    """
+
+
+
 if __name__ == '__main__':
     # So that every time we want to plot something,
     # we don't have to run main.py and spend an hour training models;
@@ -255,6 +272,12 @@ if __name__ == '__main__':
 
     test_results_tables_prefix = 'j_v1_model_grid_201203233617'
     test_results_table_name = 'j_v1_model_grid_201203233617_160101_test_results'
+
+    # Get names of test result tables
+    test_result_tables = get_table_names(
+        get_connection(), 'results', prefix=table_prefix, suffix='test_results')
+    print(test_result_tables)
+    test_results_table_name = test_result_tables[-1]
 
     #print('Plotting precision over time ...')
     #plot_results_over_time(test_results_tables_prefix)

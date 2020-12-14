@@ -17,59 +17,65 @@ from .data_utils import get_test_results_over_time
 ### Helper Functions
 
 def get_x_axis_values(columns, prefix, x_value_type):
-    column_names = [s for s in list(columns) if s.startswith(prefix)]
+    """
+    Get x-axis values for precision-recall plots (i.e. k-values)
+    from the column names of result table.
+
+    Arguments:
+        - columns: list of column names
+        - prefix: prefix of columns to consider 
+        - x_value_type: type for values; one of {'int', 'float'}
+
+    Returns:
+        - x_values: a list of x values
+        - column_names: a list of column names
+    """
+    column_names = [col for col in list(columns) if col.startswith(prefix)]
     x_values_str = [s[len(prefix):] for s in column_names]
+
     if x_value_type == 'int':
         x_values_str = [s for s in x_values_str if not '.' in s]
         x_values = [int(s) for s in x_values_str]
+
     elif x_value_type == 'float':
         x_values_str = [s for s in x_values_str if '.' in s]
         x_values = [float(s) for s in x_values_str]
+
     else:
         raise ValueError('x_value type must be int or float.')
-    return x_values_str, x_values
+
+    return x_values, column_names
 
 
 
 ### Plotting
 
-def plot_metric_at_k(results, prefix, x_value_type='float', save_path=None):
-    # clear figure
-    plt.clf()
-
-    # get x axis values from dataframe
-    x_values_str, x_values = get_x_axis_values(results.columns, prefix,
-                                               x_value_type)
-
-    # iterate models and plot graphs
-    for index, row in results.iterrows():
-        y_values = [float(row[prefix + s]) for s in x_values_str]
-        plt.plot(x_values, y_values)
-
-    # add axis labels and save figure
-    xlabel = 'k' if x_value_type == 'float' else 'n'
-    ylabel = f'{prefix}{xlabel}'
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.legend([f'Model {i}' for i in range(len(results))])
-    plt.tight_layout()
-    plt.savefig(save_path)
-
-
 def plot_pr_at_k(
     results, save_prefix, 
     p_prefix='precision_score_at_', r_prefix='recall_score_at_', x_value_type='float'):
-    # get x axis values from dataframe
-    p_xs, p_x = get_x_axis_values(results.columns, p_prefix, x_value_type)
-    r_xs, r_x = get_x_axis_values(results.columns, r_prefix, x_value_type)
+    """
+    Plot precision recall curves.
+
+    Arguments:
+        - results: a results DataFrame, with a row for each model,
+            and with columns for precision and recall at varying k-values
+        - save_prefix: filename prefix to use when saving plots
+        - p_prefix: the prefix for precision column names  
+        - r_prefix: the prefix for recall column names  
+        - x_value_type: type for k-values; one of {'int', 'float'}
+    """
+    # Get x-axis values from data frame
+    p_x, p_cols = get_x_axis_values(results.columns, p_prefix, x_value_type)
+    r_x, r_cols = get_x_axis_values(results.columns, r_prefix, x_value_type)
 
     for index, row in tqdm.tqdm(results.iterrows(), total=results.shape[0]):
         xlabel = 'k' if x_value_type == 'float' else 'n'
-        p_values = [float(row[p_prefix + s]) for s in p_xs]
-        r_values = [float(row[r_prefix + s]) for s in r_xs]
+        p_values = [float(row[p_col]) for p_col in p_cols]
+        r_values = [float(row[r_col]) for r_col in r_cols]
 
         fig, ax1 = plt.subplots()
 
+        # Plot precision
         color = 'tab:red'
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel('Precision', color=color)
@@ -77,6 +83,7 @@ def plot_pr_at_k(
         ax1.tick_params(axis='y', labelcolor=color)
         ax1.set_ylim(0.0, 0.5)
 
+        # Plot recall
         ax2 = ax1.twinx()
         color = 'tab:blue'
         ax2.set_ylabel('Recall', color=color)
@@ -85,6 +92,7 @@ def plot_pr_at_k(
         ax2.set_ylim(0.0, 1.0)
         ax2.set_title(f'Precision Recall Curve for {row["model_class"]} {index}')
         
+        # Save plot
         fig.tight_layout()
         plt.savefig(f'{save_prefix}_pr_at_k_model_{index}.png')
         plt.close(fig)
