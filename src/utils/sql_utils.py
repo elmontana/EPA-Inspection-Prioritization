@@ -90,9 +90,9 @@ def get_table_names(conn, schema, prefix='', suffix=''):
     Returns:
         - table_names: a list of table names
     """
-    query = f"select table_name from information_schema.tables where table_schema = '{schema}' order by object_id"
+    query = f"select table_name from information_schema.tables where table_schema = '{schema}'"
     table_names = pd.read_sql(query, con=get_connection()).to_numpy(copy=True).flatten()
-    table_names = [t for t in table_names if t.startswith(prefix) and table.endswith(suffix)]
+    table_names = [t for t in table_names if t.startswith(prefix) and t.endswith(suffix)]
     return table_names
 
 

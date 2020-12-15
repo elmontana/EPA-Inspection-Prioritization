@@ -117,15 +117,3 @@ def prepare_cohort(
 
     return (train_feature_table_name, train_label_table_name,
         test_feature_table_name, test_label_table_name)
-
-
-def merge_tables(table_names, output_table_name):
-    conn = sql.get_connection()
-    select_queries = []
-    for i, table_name in enumerate(table_names):
-        select_query = f"select {i} as split, s{i}.* from {table_name} s{i}"
-        select_queries.append(select_query)
-    query = f'create table {output_table_name} as ({" union all ".join(select_queries)});'
-    sql.run_sql_from_string(conn, query)
-    for table_name in table_names:
-        sql.run_sql_from_string(conn, f'drop table {table_name}')

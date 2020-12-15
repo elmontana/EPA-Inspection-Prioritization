@@ -10,7 +10,6 @@ from multiprocessing import Pool
 from pathlib import Path
 
 from ..utils.data_utils import get_data
-from ..utils.plot_utils import plot_metric_at_k, plot_pr_at_k
 from ..utils.sql_utils import get_connection
 
 

@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from pathlib import Path
 
 from .sql_utils import get_connection
-from .data_utils import get_test_results_over_time
+from .data_utils import get_table, get_test_results_over_time
 
 
 
@@ -220,3 +220,130 @@ def plot_results_over_time(
             plt.savefig(Path(save_dir) / f'{metric}_plot.png')
         else:
             plt.savefig(Path(save_dir) / f'{metric}_plot_{len(model_idx)}_models.png')
+
+
+def plot_fairness_metric_over_groups(
+    results_table_name, fairness_metric='fdr',
+    feature_name='mean_county_income',
+    pos_fn=lambda x: x > 200_000, neg_fn=lambda x: x <= 200_000,
+    metric='precision_score_at_600', n_best_models=5,
+    save_dir='./plots/',
+    filename_prefix='model_disparity'):
+    """
+    Plot recall disparity scatter plot over groups.
+
+    Arguments:
+        - results_table_name: name of results table
+        - fairness_metric: fairness metric, can be 'fdr' or 'tpr'
+        - feature_name: feature name that is used to identify groups
+        - feature_threshold: threshold to split the data to two groups
+        - metric: the metric to use for metric axis
+        - n_best_models: number of best models to highlight
+        - save_dir: directory where plots should be saved
+        - filename_prefix: prefix for the filename of the plot
+    """
+    metric_k = metric.split('_at_')[-1]
+    results_table_prefix = results_table_name.split('_test_results')[0]
+    feature_table_name = f'experiments.{results_table_prefix}_test_features'
+    label_table_name = f'experiments.{results_table_prefix}_test_labels'
+
+    results_df = get_table(f'results.{results_table_name}')
+    feature_df = get_table(feature_table_name, columns=['entity_id', feature_name])
+    label_df = get_table(label_table_name)
+
+    num_models = len(results_df)
+    model_classes = list(set(results_df['model_class'].to_list()))
+    model_classes = list(sorted(model_classes, key=lambda s: s.split('.')[-1]))
+    model_classes = model_classes[::-1]
+    model_class_names = [s.split('.')[-1] for s in model_classes]
+    model_metrics = results_df[metric].to_numpy()
+    fairness_value = []
+    
+    for i in tqdm.trange(num_models):
+        prediction_table_name = f'predictions.{results_table_prefix}_test_model_{i}'
+        prediction_df = get_table(prediction_table_name)
+        prediction_df = prediction_df.join(feature_df.set_index('entity_id'), on='entity_id').dropna()
+
+        group_identifying_features = prediction_df[feature_name].to_numpy()
+        group_ids = np.zeros_like(group_identifying_features) - 1
+        group_ids[pos_fn(group_identifying_features)] = 1
+        group_ids[neg_fn(group_identifying_features)] = 0
+        prediction_df['group_ids'] = group_ids.astype(int)
+
+        combined_df = prediction_df.join(label_df.set_index('entity_id'), on='entity_id').dropna()
+        combined_df = combined_df[combined_df.group_ids != -1]
+        predictions = combined_df[f'prediction_at_{metric_k}'].to_numpy()
+        labels = combined_df['label'].to_numpy()
+        gids = combined_df['group_ids'].to_numpy()
+
+        if fairness_metric == 'tpr':
+            tp0 = np.sum((predictions[gids == 0] == labels[gids == 0]) * (labels[gids == 0] == 1))
+            pc0 = np.sum(labels[gids == 0])
+            recall0 = tp0 / pc0
+
+            tp1 = np.sum((predictions[gids == 1] == labels[gids == 1]) * (labels[gids == 1] == 1))
+            pc1 = np.sum(labels[gids == 1])
+            recall1 = tp1 / pc1
+
+            fairness_value.append(recall1 / recall0)
+        else:
+            tp0 = np.sum((predictions[gids == 0] == labels[gids == 0]) * (labels[gids == 0] == 1))
+            pc0 = np.sum(predictions[gids == 0] == 1)
+            fdr0 = 1.0 - tp0 / pc0
+
+            tp1 = np.sum((predictions[gids == 1] == labels[gids == 1]) * (labels[gids == 1] == 1))
+            pc1 = np.sum(predictions[gids == 1] == 1)
+            fdr1 = 1.0 - tp1 / pc1
+
+            fairness_value.append(fdr1 / fdr0)
+    fairness_value = np.array(fairness_value)
+
+    # save recall disparity data to csv
+    rd_df = pd.DataFrame({
+        'index': list(range(num_models)),
+        'model_class': [s.split('.')[-1] for s in results_df['model_class'].to_list()],
+        metric: model_metrics,
+        f'{fairness_metric}': fairness_value
+    })
+    rd_df.to_csv(Path(save_dir) / f'{filename_prefix}_{fairness_metric}.csv')
+
+    # prepare colors for the scatter plot
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    markers = ['.', '+', 'x', '^', 's']
+
+    plt.clf()
+    fig = plt.figure(figsize=(8, 6))
+    for i in range(len(model_classes)):
+        model_indices = [k for k in range(num_models) \
+                         if results_df.iloc[k]['model_class'] == model_classes[i]]
+        size = 24 if 'Common' in results_df.iloc[i]['model_class'] else 12
+        plt.scatter(model_metrics[model_indices], fairness_value[model_indices],
+                    c=[colors[i]], s=size, marker=markers[i])
+    plt.xlabel(metric)
+    plt.ylabel(f'{fairness_metric.upper()} Disparity for Different [{feature_name}] Groups')
+    # plt.xlim(0, 0.1)
+    # if fairness_metric == 'fdr':
+    #     plt.ylim(0.8, 1.2)
+    plt.legend(model_class_names)
+
+    best_model_idx = find_best_models(results_table_prefix, metric=metric, n=n_best_models)
+    for i in best_model_idx:
+        padding = 0.005 if fairness_metric == 'fdr' else 0.005
+        plt.scatter([model_metrics[i]], [fairness_value[i]],
+                    c='k', s=24)
+        plt.text(s=f'Model {i}', ha='center', va='bottom',
+                 x=model_metrics[i], y=fairness_value[i] + padding)
+
+    model_classes = results_df['model_class'].to_numpy()
+    baseline_idx = [
+        i for i in range(len(model_classes)) 
+        if model_classes[i].rsplit('.', 1)[-1] == 'CommonSenseBaseline']
+    for i in baseline_idx:
+        padding = 0.005 if fairness_metric == 'fdr' else 0.005
+        plt.scatter([model_metrics[i]], [fairness_value[i]],
+                    c='k', s=24)
+        plt.text(s=f'Baseline {i}', ha='center', va='bottom',
+                 x=model_metrics[i], y=fairness_value[i] + padding)
+
+    plt.tight_layout()
+    plt.savefig(Path(save_dir) / f'{filename_prefix}_{fairness_metric}.png')

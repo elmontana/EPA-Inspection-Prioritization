@@ -14,7 +14,7 @@ import src.utils.plot_utils as plot_utils
 import src.utils.sql_utils as sql_utils
 
 from src.preprocessing.run import main as run_preprocess
-from src.model_prep.cohorts import prepare_cohort, merge_tables
+from src.model_prep.cohorts import prepare_cohort
 from src.train import train
 from src.evaluate import evaluate, get_predictions
 
@@ -159,6 +159,7 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
         split_time_abbr = date_utils.date_to_string(test_dates['label_start_time'])
         split_time_abbr = split_time_abbr.replace('-', '')[2:]
         split_name = f'{split_time_abbr}'
+        print(split_name)
         prefix = f'{username}_{exp_version}_{exp_name}_{exp_time}_{split_name}'
         experiment_table_prefix = f'experiments.{prefix}'
         train_save_dir = os.path.join(
@@ -183,9 +184,9 @@ def main(config, run_preprocessing, run_data_upload, log_dir):
             preprocessing_prefix, experiment_table_prefix,
             include_train=False)[2:]
         train_feature_table = f'{experiment_table_prefix}_train_features'
-        merge_tables(train_feature_splits, train_feature_table)
+        sql_utils.merge_tables(train_feature_splits, train_feature_table)
         train_label_table = f'{experiment_table_prefix}_train_labels'
-        merge_tables(train_label_splits, train_label_table)
+        sql_utils.merge_tables(train_label_splits, train_label_table)
 
         # Delete intermediate cohort tables
         for i in range(len(train_dates)):
