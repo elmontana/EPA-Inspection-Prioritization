@@ -45,7 +45,7 @@ The code for this repository is currently structured as follows:
 * [`plot.py`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/plot.py): plotting and visualizing results
 * [`experiments/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/experiments): experimental configuration files
 * [`src/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src): source code files
-	* [`src/preprocessing/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/preprocessing): preprocessing and cleaning raw data from EPA, NYSDEC, and ACS (general data that is the same for all experiments)
+	* [`src/preprocessing/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/preprocessing): preprocessing and cleaning raw data from EPA, NYSDEC, and ACS
 	* [`src/model_prep/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/model_prep): generating cohorts, aggregating features, and computing labels
 	* [`src/models/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/models): custom classes/wrappers/implementations for models
 	* [`src/train/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/train): model training
