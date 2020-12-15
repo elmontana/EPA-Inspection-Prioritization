@@ -180,10 +180,10 @@ def main(exp_prefix):
 
     # Generate plots
     print('Plotting precision over time ...')
-    #plot_results_over_time(exp_prefix)
+    plot_results_over_time(exp_prefix)
 
     print('Plotting precision for best 5 models over time ...')
-    #plot_best_results_over_time(exp_prefix, n=5)
+    plot_best_results_over_time(exp_prefix, n=5)
 
     print('Plotting feature importances for best 5 models ...')
     try:
