@@ -33,7 +33,7 @@ To get information about different command line arguments, run `python3 main.py 
 Every experiment is specified by a configuration file. Detailed documentation about configuration files can be found in [`experiments/README.md`](https://github.com/dssg/mlpolicylab_fall20_epa3/blob/master/experiments/README.md).
 
 Running an experiment does the following:
-1. **Setup and clean our data** with a [series of SQL scripts](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/preprocessing/sql) (only if the `--run_preprocessing` is included). Creates tables in the `cleaned`, and `semantic` schemas of the database.
+1. **Setup and clean our data** with a [series of SQL scripts](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/preprocessing/sql) (only if the `--run_preprocessing` is included). Creates tables in the `cleaned` and `semantic` schemas of the database.
 2. **Generate cohorts** of facilities, and **split the data** into training/validation sets. This involves generating/aggregating features, imputing missing values. Creates tables in the `experiments` schema.
 3. **Train the different models** (across all specific model types and configurations). Performs grid search over the set of parameter combinations specified by the experimental config.
 4. **Evaluate the models**, and save both the raw predictions and the evaluation metric results to a database. Creates tables in the `predictions` and `results` schemas.
@@ -45,8 +45,8 @@ The code for this repository is currently structured as follows:
 * [`plot.py`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/plot.py): plotting and visualizing results
 * [`experiments/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/experiments): experimental configuration files
 * [`src/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src): source code files
-	* [`src/preprocessing/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/preprocessing): preprocessing and cleaning raw data from EPA, NYSDEC, and ACS
-	* [`src/model_prep/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/model_prep): generating cohorts, aggregating features, and computing labels
+	* [`src/preprocessing/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/preprocessing): preprocessing and cleaning raw data from EPA, NYSDEC, and ACS (general data that is the same for all experiments)
+	* [`src/model_prep/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/model_prep): generating cohorts, aggregating features, and computing labels (prepare data specific to a given experiment configuration)
 	* [`src/models/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/models): custom classes/wrappers/implementations for models
 	* [`src/train/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/train): model training
 	* [`src/evaluate/`](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/evaluate): getting model predictions, model evaluation, and model selection
