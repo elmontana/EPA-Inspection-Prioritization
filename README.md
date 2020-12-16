@@ -22,7 +22,7 @@ python3 main.py --config [config_file]
 
 Each experiment generates a unique prefix of the form `{user}_{version}_{exp_name}_{exp_time}`, e.g. `"i_v1_test_run_201113235700"`. To generate plots from an experiment, just run the following:
 ```
-python3 plot.py --exp [exp_prefix]
+python3 plot.py --exp_prefix [exp_prefix]
 ```
 
 To get information about different command line arguments, run `python3 main.py --help` or `python3 plot.py --help`.
