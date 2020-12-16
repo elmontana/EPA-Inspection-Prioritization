@@ -9,6 +9,7 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 from pathlib import Path
 
+from src.evaluate.model_selection import find_best_models
 from .sql_utils import get_connection
 from .data_utils import get_table, get_test_results_over_time
 
