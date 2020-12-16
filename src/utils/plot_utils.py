@@ -9,10 +9,8 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 from pathlib import Path
 
-from src.evaluate.model_selection import find_best_models
 from .sql_utils import get_connection
 from .data_utils import get_table, get_test_results_over_time
-from ..evaluate.model_selection import find_best_models
 
 
 
@@ -226,7 +224,7 @@ def plot_fairness_metric_over_groups(
     results_table_name, fairness_metric='fdr',
     feature_name='mean_county_income',
     pos_fn=lambda x: x > 200_000, neg_fn=lambda x: x <= 200_000,
-    metric='precision_score_at_600', n_best_models=5,
+    metric='precision_score_at_600', highlight_idx=[],
     save_dir='./plots/',
     filename_prefix='model_disparity'):
     """
@@ -238,7 +236,7 @@ def plot_fairness_metric_over_groups(
         - feature_name: feature name that is used to identify groups
         - feature_threshold: threshold to split the data to two groups
         - metric: the metric to use for metric axis
-        - n_best_models: number of best models to highlight
+        - highlight_idx: model indices to highlight on the plot
         - save_dir: directory where plots should be saved
         - filename_prefix: prefix for the filename of the plot
     """
@@ -327,23 +325,11 @@ def plot_fairness_metric_over_groups(
     #     plt.ylim(0.8, 1.2)
     plt.legend(model_class_names)
 
-    best_model_idx = find_best_models(results_table_prefix, metric=metric, n=n_best_models)
-    for i in best_model_idx:
+    for i in highlight_idx:
         padding = 0.005 if fairness_metric == 'fdr' else 0.005
         plt.scatter([model_metrics[i]], [fairness_value[i]],
                     c='k', s=24)
         plt.text(s=f'Model {i}', ha='center', va='bottom',
-                 x=model_metrics[i], y=fairness_value[i] + padding)
-
-    model_classes = results_df['model_class'].to_numpy()
-    baseline_idx = [
-        i for i in range(len(model_classes)) 
-        if model_classes[i].rsplit('.', 1)[-1] == 'CommonSenseBaseline']
-    for i in baseline_idx:
-        padding = 0.005 if fairness_metric == 'fdr' else 0.005
-        plt.scatter([model_metrics[i]], [fairness_value[i]],
-                    c='k', s=24)
-        plt.text(s=f'Baseline {i}', ha='center', va='bottom',
                  x=model_metrics[i], y=fairness_value[i] + padding)
 
     plt.tight_layout()

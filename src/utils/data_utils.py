@@ -152,7 +152,7 @@ def get_experiment_feature_names(table_prefix):
         'other_f': 'Industrial Waste (Other)',
         'p001': 'Chemical Waste (p001)', 
         'other_p': 'P-List Chemical Waste (Other)', 'other_u': 'U-List Chemical Waste (Other)',
-        'other_k': 'K-List Industrial Waste (Other)', 'other': 'Waste (Other)'
+        'other_k': 'K-List Industrial Waste (Other)', 'other': 'Waste (Other)',
         'labp': 'Lab Pack (Misc)',
         'events_sum_found_violation_1_year': '# Violations (Aggregated 1 Year)',
         'events_sum_found_violation_2_years': '# Violations (Aggregated 2 Years)',

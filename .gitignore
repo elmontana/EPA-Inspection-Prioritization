@@ -1,8 +1,9 @@
 database.yaml
 venv/
+crosstabs/
 logs/
 plots/
 .git
 **/__pycache__/
 plots/
-*.csv
+*.csiv
