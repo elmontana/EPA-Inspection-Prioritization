@@ -110,11 +110,8 @@ def plot_feature_importances(feature_names, feature_importance, save_prefix):
         - feature_importances: list of relative feature importance values
         - save_prefix: filename prefix to use when saving plots
     """
-    # Create save directory if not exists
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-                      
     assert len(feature_names) == len(feature_importance)
+    
     y_pos = np.arange(len(feature_names))
     order = np.argsort(feature_importance)[::-1]
     feature_importance = feature_importance[order]

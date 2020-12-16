@@ -112,9 +112,10 @@ def plot_best_feature_importances(
         - include_baselines: whether or not to also plot for baselines
         - save_dir: directory where plots should be saved
     """
-    # Create save directory if not exists
-    if not os.path.exists(save_dir):
+    # Create save directories if they do not exist
+    if not os.path.exists(Path(save_dir) / 'all_features'):
         os.makedirs(Path(save_dir) / 'all_features')
+    if not os.path.exists(Path(save_dir) / f'{n_features}_features'):
         os.makedirs(Path(save_dir) / f'{n_features}_features')
 
     best_model_idx = find_best_models(exp_table_prefix, metric=metric, n=n_models)
@@ -128,7 +129,7 @@ def plot_best_feature_importances(
     model_paths = test_results[0].iloc[best_model_idx, model_path_col_idx].to_numpy()
 
     # Get feature names
-    feature_names = data_utils.get_experiment_feature_names(exp_table_prefix)
+    feature_names, feature_cols = data_utils.get_experiment_feature_names(exp_table_prefix)
     feature_names = np.array(feature_names)
 
     # Plot feature importances
@@ -136,7 +137,7 @@ def plot_best_feature_importances(
         with open(path, 'rb') as file:
             model = pickle.load(file)
         
-        feature_importance = np.array(model.feature_importance())
+        feature_importance = np.array(model.feature_importance(columns=feature_cols))
 
         # Plot all features
         plot_utils.plot_feature_importances(

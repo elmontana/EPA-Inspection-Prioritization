@@ -111,7 +111,8 @@ def get_experiment_feature_names(table_prefix):
             (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
 
     Returns:
-        - feature_names: a list of feature names
+        - feature_names: a list of feature names (readable descriptions)
+        - feature_cols: a list of feature column names
     """
 
     # Get names of test feature tables
@@ -120,8 +121,8 @@ def get_experiment_feature_names(table_prefix):
     assert len(test_feature_tables) > 0
 
     # Get feature column names
-    feature_names = get_table_columns(get_connection(), f'experiments.{test_feature_tables[0]}')
-    feature_names = [name for name in feature_names if name not in {'split', 'entity_id'}]
+    feature_col_names = get_table_columns(get_connection(), f'experiments.{test_feature_tables[0]}')
+    feature_col_names = [name for name in feature_col_names if name not in {'split', 'entity_id'}]
 
     # Make names readable
     feature_dict = {
@@ -151,7 +152,7 @@ def get_experiment_feature_names(table_prefix):
         'other_f': 'Industrial Waste (Other)',
         'p001': 'Chemical Waste (p001)', 
         'other_p': 'P-List Chemical Waste (Other)', 'other_u': 'U-List Chemical Waste (Other)',
-        'other_k': 'K-List Industrial Waste (Other)', 'Waste (Other)'
+        'other_k': 'K-List Industrial Waste (Other)', 'other': 'Waste (Other)'
         'labp': 'Lab Pack (Misc)',
         'events_sum_found_violation_1_year': '# Violations (Aggregated 1 Year)',
         'events_sum_found_violation_2_years': '# Violations (Aggregated 2 Years)',
@@ -167,5 +168,5 @@ def get_experiment_feature_names(table_prefix):
         'events_sum_penalty_amount_5_years': 'Fine Amount (Aggregated 5 Years)',
     }
     
-    feature_names = [feature_dict[name] if name in feature_dict else name for name in feature_names]
-    return feature_names
+    feature_names = [feature_dict[name] if name in feature_dict else name for name in feature_col_names]
+    return feature_names, feature_col_names
