@@ -20,7 +20,7 @@ To run an experiment from a config file:
 python3 main.py --config [config_file]
 ```
 
-Each experiment generates a unique prefix of the form `{user}_{version}_{exp_name}_{exp_time}`, e.g. "i_v1_test_run_201113235700". To generate plots from an experiment, just run the following:
+Each experiment generates a unique prefix of the form `{user}_{version}_{exp_name}_{exp_time}`, e.g. `"i_v1_test_run_201113235700"`. To generate plots from an experiment, just run the following:
 ```
 python3 plot.py --exp [exp_prefix]
 ```
@@ -33,8 +33,8 @@ To get information about different command line arguments, run `python3 main.py 
 Every experiment is specified by a configuration file. Detailed documentation about configuration files can be found in [`experiments/README.md`](https://github.com/dssg/mlpolicylab_fall20_epa3/blob/master/experiments/README.md).
 
 Running an experiment does the following:
-1. **Setup and clean our data** with a [series of SQL scripts](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/preprocessing/sql) (only if the `--run_preprocessing` is included). Creates tables in the `cleaned`, and `semantic` schemas of the database.
-2. **Generate cohorts** of facilities, and **split the data** into training/validation sets. This involves generating/aggregating features, imputing missing values. Creates tables in the `experiments` schema.
+1. **Setup and clean our data** with a [series of SQL scripts](https://github.com/dssg/mlpolicylab_fall20_epa3/tree/master/src/preprocessing/sql) (only if the `--run_preprocessing` is included). Creates tables in the `cleaned` and `semantic` schemas of the database. These tables are for general use across all experiments, so `--run_preprocessing` only needs to be run once.
+2. **Generate cohorts** of facilities, and **split the data** into training/validation sets. This involves aggregating features, imputing missing values, and computing labels. Creates tables in the `experiments` schema. These tables are specific to a particular experiment configuration.
 3. **Train the different models** (across all specific model types and configurations). Performs grid search over the set of parameter combinations specified by the experimental config.
 4. **Evaluate the models**, and save both the raw predictions and the evaluation metric results to a database. Creates tables in the `predictions` and `results` schemas.
 
