@@ -28,7 +28,7 @@ def get_data(feature_table, label_table, discard_columns=[]):
     return X, y
 
 
-def get_table(table_name, columns=None):
+def get_table(table_name, columns=['*']):
     """
     Get data from SQL table as a pd.DataFrame object.
 
@@ -39,7 +39,7 @@ def get_table(table_name, columns=None):
     Returns:
         - df: a data frame with the given table columns
     """
-    column_string = '*' if columns is None else ', '.join(columns)
+    column_string = ', '.join(columns)
     query = f'select {column_string} from {table_name}'
     df = pd.read_sql(query, con=get_connection())
     return df
@@ -75,6 +75,31 @@ def get_test_results_over_time(table_prefix):
     model_classes = [model_class.rsplit('.', 1)[-1] for model_class in model_classes]
 
     return test_results, test_dates, model_classes
+
+
+
+def get_baseline_model_idx(table_prefix):
+    """
+    Get model indices for baselines.
+
+    Arguments:
+        - table_prefix: prefix of train feature tables
+            (usually {user}_{version}_{exp_name}_{exp_time}, e.g. "i_v1_test_run_201113235700")
+
+    Returns:
+        - baseline_model_idx: the row indices of n the best models
+    """
+
+    # Get list of model classes
+    test_result_tables = get_table_names(
+        get_connection(), 'results', prefix=table_prefix, suffix='test_results')
+    test_result_table = get_table(f'results.{test_result_tables[-1]}', columns=['model_class'])
+    model_classes = test_result_table['model_class']
+
+    # Return indices of `CommonSenseBaseline`
+    return [
+        i for i in range(len(model_classes))
+        if model_classes[i].rsplit('.', 1)[-1] == 'CommonSenseBaseline']
 
 
 def get_experiment_feature_names(table_prefix):

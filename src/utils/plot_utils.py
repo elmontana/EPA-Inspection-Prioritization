@@ -32,16 +32,17 @@ def get_x_axis_values(columns, prefix, x_value_type):
         - x_values: a list of x values
         - column_names: a list of column names
     """
-    column_names = [col for col in list(columns) if col.startswith(prefix)]
-    x_values_str = [s[len(prefix):] for s in column_names]
-
     if x_value_type == 'int':
-        x_values_str = [s for s in x_values_str if not '.' in s]
-        x_values = [int(s) for s in x_values_str]
+        column_names = [
+            col for col in list(columns) 
+            if col.startswith(prefix) and not '.' in col[len(prefix):]]
+        x_values = [int(col[len(prefix):]) for col in column_names]
 
     elif x_value_type == 'float':
-        x_values_str = [s for s in x_values_str if '.' in s]
-        x_values = [float(s) for s in x_values_str]
+        column_names = [
+            col for col in list(columns) 
+            if col.startswith(prefix) and '.' in col[len(prefix):]]
+        x_values = [float(col[len(prefix):]) for col in column_names]
 
     else:
         raise ValueError('x_value type must be int or float.')
@@ -70,7 +71,7 @@ def plot_pr_at_k(
     p_x, p_cols = get_x_axis_values(results.columns, p_prefix, x_value_type)
     r_x, r_cols = get_x_axis_values(results.columns, r_prefix, x_value_type)
 
-    for index, row in tqdm.tqdm(results.iterrows(), total=results.shape[0]):
+    for index, row in results.iterrows():
         xlabel = 'k' if x_value_type == 'float' else 'n'
         p_values = [float(row[p_col]) for p_col in p_cols]
         r_values = [float(row[r_col]) for r_col in r_cols]
@@ -100,14 +101,14 @@ def plot_pr_at_k(
         plt.close(fig)
 
 
-def plot_feature_importances(feature_names, feature_importance, save_dir):
+def plot_feature_importances(feature_names, feature_importance, save_prefix):
     """
     Plot feature importances.
     
     Arguments:
         - feature_names: list of feature names
         - feature_importances: list of relative feature importance values
-        - save_dir: directory where plot should be saved
+        - save_prefix: filename prefix to use when saving plots
     """
     # Create save directory if not exists
     if not os.path.exists(save_dir):
@@ -128,7 +129,7 @@ def plot_feature_importances(feature_names, feature_importance, save_dir):
     ax.set_ylabel('Feature Name')
     fig.set_size_inches(11.0, 8.5)
     plt.tight_layout()
-    fig.savefig(os.path.join(save_dir, 'feature_importance.pdf'))
+    fig.savefig(f'{save_prefix}_feature_importance.pdf')
     plt.close(fig)
 
 
@@ -263,7 +264,8 @@ def plot_fairness_metric_over_groups(
     
     for i in tqdm.trange(num_models):
         prediction_table_name = f'predictions.{results_table_prefix}_test_model_{i}'
-        prediction_df = get_table(prediction_table_name)
+        prediction_df = get_table(
+            prediction_table_name, columns=['entity_id', f'prediction_at_{metric_k}'])
         prediction_df = prediction_df.join(feature_df.set_index('entity_id'), on='entity_id').dropna()
 
         group_identifying_features = prediction_df[feature_name].to_numpy()

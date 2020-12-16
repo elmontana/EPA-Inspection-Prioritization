@@ -31,10 +31,8 @@ class CommonSenseBaseline(base.BaseModel):
 
     def predict_proba(self, X, columns=None):
         # Sanity check
-        assert columns is not None, \
-            'CommonSenseBaseline requires a list of column names.'
-        assert self.column in columns, \
-            f'"{self.column}" not in list of columns'
+        assert columns is not None, 'CommonSenseBaseline requires a list of column names.'
+        assert self.column in columns, f'"{self.column}" not in list of columns'
 
         # Sort data by column
         order = X[:, columns.index(self.column)].argsort().flatten()
@@ -49,3 +47,15 @@ class CommonSenseBaseline(base.BaseModel):
         probs = np.stack([1.0 - probs, probs], axis=-1)
 
         return probs
+
+
+    def feature_importance(self, columns=None):
+        # Sanity check
+        assert columns is not None, 'CommonSenseBaseline requires a list of column names.'
+        assert self.column in columns, f'"{self.column}" not in list of columns'
+
+        # Return one-hot feature importance vector
+        importances = np.zeros(len(columns))
+        importances[list(columns).index(self.column)] = 1
+        return importances
+
