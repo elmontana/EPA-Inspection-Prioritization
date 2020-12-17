@@ -99,7 +99,7 @@ def plot_best_precision_recall_curves(
 
 def plot_best_feature_importances(
     exp_table_prefix, metric='precision_score_at_600', 
-    n_models=5, n_features=12, include_baselines=True, save_dir='./plots/'):
+    n_models=5, n_features=12, include_baselines=True, save_dir='./plots/feature_importances/'):
     """
     Plot feature importances for the best models at the provided metric.
 
@@ -112,11 +112,9 @@ def plot_best_feature_importances(
         - include_baselines: whether or not to also plot for baselines
         - save_dir: directory where plots should be saved
     """
-    # Create save directories if they do not exist
-    if not os.path.exists(Path(save_dir) / 'all_features'):
-        os.makedirs(Path(save_dir) / 'all_features')
-    if not os.path.exists(Path(save_dir) / f'{n_features}_features'):
-        os.makedirs(Path(save_dir) / f'{n_features}_features')
+    # Create save directory if not exists
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
     best_model_idx = find_best_models(exp_table_prefix, metric=metric, n=n_models)
     if include_baselines:
@@ -132,23 +130,23 @@ def plot_best_feature_importances(
     feature_names, feature_cols = data_utils.get_experiment_feature_names(exp_table_prefix)
     feature_names = np.array(feature_names)
 
-    # Plot feature importances
+    # Get feature importances
+    feature_importance_df = pd.DataFrame(columns=best_model_idx, index=feature_cols)
     for path, model_idx in zip(model_paths, best_model_idx):
         with open(path, 'rb') as file:
             model = pickle.load(file)
         
         feature_importance = np.array(model.feature_importance(columns=feature_cols))
-
-        # Plot all features
-        plot_utils.plot_feature_importances(
-            feature_names, feature_importance, 
-            Path(save_dir) / 'all_features'/ f'model_{model_idx}')
+        feature_importance_df[model_idx] = feature_importance
 
         # Plot most important features
         keep_idx = np.argsort(feature_importance)[::-1][:n_features]
         plot_utils.plot_feature_importances(
             feature_names[keep_idx], feature_importance[keep_idx], 
-            Path(save_dir) / f'{n_features}_features'/ f'model_{model_idx}')
+            Path(save_dir) / f'model_{model_idx}')
+
+    # Save importances for all features
+    feature_importance_df.to_csv(Path(save_dir) / f'all_feature_importances.csv')
 
 
 def plot_fairness_metric_over_groups(
@@ -156,7 +154,7 @@ def plot_fairness_metric_over_groups(
     fairness_metric='fdr', 
     feature_name='mean_county_income', feature_threshold=200000,
     performance_metric='precision_score_at_600', n_best_models=5,
-    save_dir='./plots/',
+    include_baselines=True, save_dir='./plots/',
     filename_prefix='model_disparity'):
     """
     Plot recall disparity scatter plot over groups.
@@ -168,14 +166,21 @@ def plot_fairness_metric_over_groups(
         - feature_threshold: threshold to split the data into two groups
         - performance_metric: performance metric to plot on the x-axis
         - n_best_models: number of best models to highlight
+        - include_baselines: whether or not to also plot for baselines
         - save_dir: directory where plots should be saved
         - filename_prefix: prefix for the filename of the plot
     """
+    exp_table_prefix = results_table_name.split('_test_results')[0].rsplit('_', 1)[0]
+    highlight_idx = find_best_models(exp_table_prefix, metric=performance_metric, n=n_best_models)
+    if include_baselines:
+        baseline_model_idx = data_utils.get_baseline_model_idx(exp_table_prefix)
+        highlight_idx = list(highlight_idx) + list(baseline_model_idx)
+
     plot_utils.plot_fairness_metric_over_groups(
         results_table_name,
         fairness_metric=fairness_metric, feature_name=feature_name, 
         pos_fn=lambda x: x >= feature_threshold, neg_fn=lambda x: x < feature_threshold,
-        metric=performance_metric, n_best_models=n_best_models,
+        metric=performance_metric, highlight_idx=highlight_idx,
         save_dir=save_dir, filename_prefix=filename_prefix)
 
 
@@ -254,7 +259,7 @@ def main(exp_prefix):
             test_results_table_name,
             fairness_metric=metric,
             feature_name='mean_county_income',
-            feature_threshold=100000,
+            feature_threshold=75000,
             filename_prefix='rich_vs_poor')
 
 
